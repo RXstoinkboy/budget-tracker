@@ -5,6 +5,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@auth": [
+        "./utils/supabase.js"
       ]
     },
     "jsx": "react-jsx"
@@ -14,5 +17,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+, "utils/ctx.txs"  ]
 }
