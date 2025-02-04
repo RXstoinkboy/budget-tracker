@@ -27275,14 +27275,14 @@ var ThemeBuilder = class {
   }
   // for dev mode only really
   _addedThemes = [];
-  addThemes(themes2) {
+  addThemes(themes3) {
     return this._addedThemes.push({
       type: "themes",
-      args: [themes2]
+      args: [themes3]
     }), this.state.themes = {
       // as {} prevents generic string key merge messing up types
       ...this.state.themes,
-      ...themes2
+      ...themes3
     }, this;
   }
   // these wont be typed to save some complexity and because they don't need to be typed!
@@ -44116,7 +44116,7 @@ __name(makeContentId, "makeContentId");
 // node_modules/@tamagui/theme/dist/esm/_mutateTheme.mjs
 var import_web17 = require("@tamagui/core");
 function mutateThemes({
-  themes: themes2,
+  themes: themes3,
   batch,
   insertCSS = true,
   ...props
@@ -44125,7 +44125,7 @@ function mutateThemes({
   for (const {
     name,
     theme
-  } of themes2) {
+  } of themes3) {
     const res = _mutateTheme({
       ...props,
       name,
@@ -44195,11 +44195,11 @@ function notifyThemeManagersOfUpdate(themeName, theme) {
   });
 }
 __name(notifyThemeManagersOfUpdate, "notifyThemeManagersOfUpdate");
-function insertThemeCSS(themes2, batch = false) {
+function insertThemeCSS(themes3, batch = false) {
   const config = (0, import_web17.getConfig)();
   let cssRules = [];
-  for (const themeName in themes2) {
-    const theme = themes2[themeName], rules = (0, import_web17.getThemeCSSRules)({
+  for (const themeName in themes3) {
+    const theme = themes3[themeName], rules = (0, import_web17.getThemeCSSRules)({
       config,
       themeName,
       names: [themeName],
@@ -44209,7 +44209,7 @@ function insertThemeCSS(themes2, batch = false) {
     cssRules = [...cssRules, ...rules], batch || updateStyle(`t_theme_style_${themeName}`, rules);
   }
   if (batch) {
-    const id = (0, import_web17.simpleHash)(typeof batch == "string" ? batch : Object.keys(themes2).join(""));
+    const id = (0, import_web17.simpleHash)(typeof batch == "string" ? batch : Object.keys(themes3).join(""));
     updateStyle(`t_theme_style_${id}`, cssRules);
   }
   return cssRules;
@@ -46786,8 +46786,150 @@ var Text4 = (0, import_core55.styled)(import_core55.Text, {
 // node_modules/tamagui/dist/esm/index.mjs
 var import_core56 = require("@tamagui/core");
 
+// themes.ts
+var darkPalette2 = [
+  "hsla(0, 15%, 1%, 1)",
+  "hsla(0, 15%, 6%, 1)",
+  "hsla(0, 15%, 12%, 1)",
+  "hsla(0, 15%, 17%, 1)",
+  "hsla(0, 15%, 23%, 1)",
+  "hsla(0, 15%, 28%, 1)",
+  "hsla(0, 15%, 34%, 1)",
+  "hsla(0, 15%, 39%, 1)",
+  "hsla(0, 15%, 45%, 1)",
+  "hsla(0, 15%, 50%, 1)",
+  "hsla(0, 15%, 93%, 1)",
+  "hsla(0, 15%, 99%, 1)"
+];
+var lightPalette2 = [
+  "hsla(0, 15%, 99%, 1)",
+  "hsla(0, 15%, 94%, 1)",
+  "hsla(0, 15%, 88%, 1)",
+  "hsla(0, 15%, 83%, 1)",
+  "hsla(0, 15%, 77%, 1)",
+  "hsla(0, 15%, 72%, 1)",
+  "hsla(0, 15%, 66%, 1)",
+  "hsla(0, 15%, 61%, 1)",
+  "hsla(0, 15%, 55%, 1)",
+  "hsla(0, 15%, 50%, 1)",
+  "hsla(0, 15%, 15%, 1)",
+  "hsla(0, 15%, 1%, 1)"
+];
+var lightShadows2 = {
+  shadow1: "rgba(0,0,0,0.04)",
+  shadow2: "rgba(0,0,0,0.08)",
+  shadow3: "rgba(0,0,0,0.16)",
+  shadow4: "rgba(0,0,0,0.24)",
+  shadow5: "rgba(0,0,0,0.32)",
+  shadow6: "rgba(0,0,0,0.4)"
+};
+var darkShadows2 = {
+  shadow1: "rgba(0,0,0,0.2)",
+  shadow2: "rgba(0,0,0,0.3)",
+  shadow3: "rgba(0,0,0,0.4)",
+  shadow4: "rgba(0,0,0,0.5)",
+  shadow5: "rgba(0,0,0,0.6)",
+  shadow6: "rgba(0,0,0,0.7)"
+};
+var builtThemes = createThemes({
+  componentThemes: defaultComponentThemes,
+  base: {
+    palette: {
+      dark: darkPalette2,
+      light: lightPalette2
+    },
+    extra: {
+      light: {
+        ...green2,
+        ...red2,
+        ...yellow2,
+        ...lightShadows2,
+        shadowColor: lightShadows2.shadow1
+      },
+      dark: {
+        ...green,
+        ...red,
+        ...yellow,
+        ...darkShadows2,
+        shadowColor: darkShadows2.shadow1
+      }
+    }
+  },
+  accent: {
+    palette: {
+      dark: [
+        "hsla(250, 50%, 35%, 1)",
+        "hsla(250, 50%, 38%, 1)",
+        "hsla(250, 50%, 41%, 1)",
+        "hsla(250, 50%, 43%, 1)",
+        "hsla(250, 50%, 46%, 1)",
+        "hsla(250, 50%, 49%, 1)",
+        "hsla(250, 50%, 52%, 1)",
+        "hsla(250, 50%, 54%, 1)",
+        "hsla(250, 50%, 57%, 1)",
+        "hsla(250, 50%, 60%, 1)",
+        "hsla(250, 50%, 90%, 1)",
+        "hsla(250, 50%, 95%, 1)"
+      ],
+      light: [
+        "hsla(250, 50%, 40%, 1)",
+        "hsla(250, 50%, 43%, 1)",
+        "hsla(250, 50%, 46%, 1)",
+        "hsla(250, 50%, 48%, 1)",
+        "hsla(250, 50%, 51%, 1)",
+        "hsla(250, 50%, 54%, 1)",
+        "hsla(250, 50%, 57%, 1)",
+        "hsla(250, 50%, 59%, 1)",
+        "hsla(250, 50%, 62%, 1)",
+        "hsla(250, 50%, 65%, 1)",
+        "hsla(250, 50%, 95%, 1)",
+        "hsla(250, 50%, 95%, 1)"
+      ]
+    }
+  },
+  childrenThemes: {
+    warning: {
+      palette: {
+        dark: Object.values(yellow),
+        light: Object.values(yellow2)
+      }
+    },
+    error: {
+      palette: {
+        dark: Object.values(red),
+        light: Object.values(red2)
+      }
+    },
+    success: {
+      palette: {
+        dark: Object.values(green),
+        light: Object.values(green2)
+      }
+    }
+  }
+  // optionally add more, can pass palette or template
+  // grandChildrenThemes: {
+  //   alt1: {
+  //     template: 'alt1',
+  //   },
+  //   alt2: {
+  //     template: 'alt2',
+  //   },
+  //   surface1: {
+  //     template: 'surface1',
+  //   },
+  //   surface2: {
+  //     template: 'surface2',
+  //   },
+  //   surface3: {
+  //     template: 'surface3',
+  //   },
+  // },
+});
+var themes2 = process.env.TAMAGUI_ENVIRONMENT === "client" && process.env.NODE_ENV === "production" ? {} : builtThemes;
+
 // tamagui.config.ts
-var tamaguiConfig = createTamagui(defaultConfig);
+var tamaguiConfig = createTamagui({ ...defaultConfig, themes: themes2 });
 var tamagui_config_default = tamaguiConfig;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

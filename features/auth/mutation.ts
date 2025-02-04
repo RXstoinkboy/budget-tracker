@@ -2,8 +2,8 @@ import { supabase } from '@/utils/supabase';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
-import { AUTH_SESSION_KEY } from './query';
 import { redirectTo } from './utils';
+import { authKeys } from './query';
 
 type EmailCredentials = {
     email: string;
@@ -32,7 +32,7 @@ export function useSignInWithEmail() {
     return useMutation({
         mutationFn: signInWithEmail,
         onSuccess: (data) => {
-            queryClient.setQueryData(AUTH_SESSION_KEY, () => {
+            queryClient.setQueryData(authKeys.session(), () => {
                 return {
                     session: data?.session,
                     user: data?.user,
@@ -78,7 +78,7 @@ export function useSignUpWithEmail() {
     return useMutation({
         mutationFn: signUpWithEmail,
         onSuccess: (data) => {
-            queryClient.setQueryData(AUTH_SESSION_KEY, () => {
+            queryClient.setQueryData(authKeys.session(), () => {
                 return {
                     session: data?.session,
                     user: data?.user,
@@ -103,7 +103,7 @@ export function useSignOut() {
     return useMutation({
         mutationFn: signOut,
         onSuccess: () => {
-            queryClient.setQueryData(AUTH_SESSION_KEY, () => {
+            queryClient.setQueryData(authKeys.session(), () => {
                 return {
                     session: null,
                     user: null,

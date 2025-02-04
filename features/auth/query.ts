@@ -1,7 +1,10 @@
 import { supabase } from '@/utils/supabase';
 import { useQuery } from '@tanstack/react-query';
 
-export const AUTH_SESSION_KEY = ['auth-session'];
+export const authKeys = {
+    all: ['auth'] as const,
+    session: () => [...authKeys.all, 'session'] as const,
+};
 
 export async function getSession() {
     const {
@@ -18,7 +21,7 @@ export async function getSession() {
 
 export function useAuthSession() {
     return useQuery({
-        queryKey: AUTH_SESSION_KEY,
+        queryKey: authKeys.session(),
         queryFn: getSession,
     });
 }

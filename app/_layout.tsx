@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // router
 import { Slot } from 'expo-router';
@@ -11,8 +12,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { TamaguiProvider } from 'tamagui';
 import { tamaguiConfig } from '../tamagui.config';
 import { useFonts, Inter_400Regular, Inter_900Black } from '@expo-google-fonts/inter';
-import { QueryClientProvider } from '@/context/query-provider';
-import { useInitiateAuth } from '@/auth/hooks';
+import { QueryClientProvider } from '@/services/query-provider';
+import { useInitiateAuth } from '@/features/auth/hooks';
 
 if (Platform.OS === 'web') {
     require('../tamagui-web.css');
@@ -52,10 +53,12 @@ function RootLayout() {
             config={tamaguiConfig}
             defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <Slot />
-                {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                    <Slot />
+                    {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="+not-found" /> */}
-                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                    <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                </GestureHandlerRootView>
             </ThemeProvider>
         </TamaguiProvider>
     );
