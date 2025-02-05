@@ -1,13 +1,13 @@
-import { Link, Stack } from 'expo-router';
-import { View } from 'tamagui';
+import { router, Stack } from 'expo-router';
+import { Button, YStack } from 'tamagui';
 
 export default function NotFoundScreen() {
     return (
         <>
             <Stack.Screen options={{ title: 'Ooops! Not found!' }} />
-            <View>
-                <Link href="/">Go back to Home screen!</Link>
-            </View>
+            <YStack flex={1} justify={'center'}>
+                <Button onPress={() => router.replace('/')}>Go to main</Button>
+            </YStack>
         </>
     );
 }

@@ -21,7 +21,8 @@ const config: ExpoConfig = {
     },
     web: {
         bundler: 'metro',
-        output: 'static',
+        output: 'single',
+        // output: 'static', // INFO: this is default config
         favicon: './assets/images/favicon.png',
     },
     plugins: [

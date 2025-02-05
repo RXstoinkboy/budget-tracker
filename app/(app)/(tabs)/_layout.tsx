@@ -1,4 +1,10 @@
-import { ChartSpline, ClipboardList, FolderSync, ListCheck } from '@tamagui/lucide-icons';
+import {
+    ChartSpline,
+    ClipboardList,
+    FolderSync,
+    ListCheck,
+    MoreHorizontal,
+} from '@tamagui/lucide-icons';
 import { Tabs } from 'expo-router';
 import { GetThemeValueForKey } from 'tamagui';
 
@@ -6,12 +12,11 @@ export default function TabLayout() {
     // const theme = useTheme();
     return (
         <Tabs
-            screenOptions={
-                {
-                    // tabBarActiveTintColor: theme.backgroundFocus.get(),
-                    // headerShown: false,
-                }
-            }>
+            screenOptions={{
+                // tabBarActiveTintColor: theme.backgroundFocus.get(),
+                // headerShown: false,
+                animation: 'shift',
+            }}>
             <Tabs.Screen
                 name="index"
                 options={{
@@ -46,6 +51,16 @@ export default function TabLayout() {
                     title: 'Accounts',
                     tabBarIcon: ({ color }) => (
                         <FolderSync size={'$1'} color={color as GetThemeValueForKey<'color'>} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: 'Settings',
+                    headerShown: false,
+                    tabBarIcon: ({ color }) => (
+                        <MoreHorizontal size={'$1'} color={color as GetThemeValueForKey<'color'>} />
                     ),
                 }}
             />

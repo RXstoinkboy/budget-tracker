@@ -13,7 +13,7 @@ export default function TransactionsLayout() {
                 name="create"
                 options={{
                     presentation: 'modal',
-                    headerTitle: 'New Transaction',
+                    headerTitle: 'Add transaction',
                 }}
             />
         </Stack>
