@@ -1,11 +1,7 @@
-import { ChevronDown, ChevronUp, Check } from '@tamagui/lucide-icons';
-import React from 'react';
-import { useState } from 'react';
 import {
     Button,
     Form,
     Spinner,
-    Text,
     YStack,
     RadioGroup,
     XStack,
@@ -15,10 +11,26 @@ import {
     TextArea,
     Select,
     SelectProps,
-    FontSizeTokens,
-    getFontSize,
+    InputProps,
+    TextAreaProps,
+    Adapt,
+    ScrollView,
+    Sheet,
+    useMedia,
 } from 'tamagui';
-import { LinearGradient } from 'tamagui/linear-gradient';
+import {
+    useForm,
+    useFormContext,
+    Controller,
+    ControllerProps,
+    FieldValues,
+    FormProvider,
+} from 'react-hook-form';
+import { transactionsKeys, useCreateTransaction } from '@/features/transactions/api/query';
+import { DatePicker } from '@/components/date-picker';
+import { router } from 'expo-router';
+import { TransactionDto } from '@/features/transactions/api/types';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function RadioGroupItemWithLabel(props: { size: SizeTokens; value: string; label: string }) {
     const id = `radiogroup-${props.value}`;
@@ -38,150 +50,165 @@ export function RadioGroupItemWithLabel(props: { size: SizeTokens; value: string
 // TODO: maybe change it to ToggleGroup
 // TODO: add some default value and some useful props
 export function IsExpenseController() {
+    const { control } = useFormContext<TransactionFormType>();
+
+    // TODO: make it more generic
     return (
-        <RadioGroup aria-labelledby="Select one item" defaultValue="3" name="form">
-            <XStack gap="$2">
-                <RadioGroupItemWithLabel size="$3" value="2" label="Expense" />
-                <RadioGroupItemWithLabel size="$4" value="3" label="Income" />
-            </XStack>
-        </RadioGroup>
+        <Controller
+            control={control}
+            name="expense"
+            render={({ field: { value, onChange } }) => {
+                const normalizedValue = value.toString();
+                return (
+                    <RadioGroup
+                        aria-labelledby="Select one item"
+                        name="form"
+                        value={normalizedValue}
+                        onValueChange={onChange}>
+                        <XStack gap="$2">
+                            <RadioGroupItemWithLabel size="$3" value={'true'} label="Expense" />
+                            <RadioGroupItemWithLabel size="$4" value={'false'} label="Income" />
+                        </XStack>
+                    </RadioGroup>
+                );
+            }}
+        />
     );
 }
 
 // TODO: defaultValue, type (numeric | date | text | password),
 // TODO: onChange, value, disabled, required, min,
-type InputFieldProps = {
-    label?: string;
-    id?: string;
-    placeholder?: string;
-};
-export function InputField(props: InputFieldProps) {
+type InputFieldProps<T extends FieldValues> = Omit<ControllerProps<T>, 'render'> &
+    InputProps & {
+        type?: 'text' | 'password' | 'number';
+        label?: string;
+        placeholder?: string;
+    };
+export function InputField<T extends FieldValues>(props: InputFieldProps<T>) {
+    const { control } = useFormContext<T>();
     return (
         <YStack>
-            {props.label && <Label htmlFor={props.id}>{props.label}</Label>}
-            <Input id={props.id} flex={1} placeholder={props.placeholder} />
+            {props.label && <Label htmlFor={props.name}>{props.label}</Label>}
+            <Controller
+                control={control}
+                rules={{
+                    required: true,
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                        id={props.name}
+                        placeholder={props.placeholder}
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        secureTextEntry={props.type === 'password'}
+                        keyboardType={props.type === 'number' ? 'numeric' : 'default'}
+                        {...props}
+                    />
+                )}
+                name={props.name}
+            />
+            {/* {errors.firstName && <Text>This is required.</Text>} */}
         </YStack>
     );
 }
 
-type TextAreaFieldProps = {
-    label?: string;
-    id?: string;
-    placeholder?: string;
-};
-export function TextAreaField(props: TextAreaFieldProps) {
+type TextAreaFieldProps<T extends FieldValues> = Omit<ControllerProps<T>, 'render'> &
+    TextAreaProps & {
+        label?: string;
+        name: string;
+        placeholder?: string;
+    };
+
+export const TextAreaField = <T extends FieldValues>({
+    name,
+    label,
+    ...props
+}: TextAreaFieldProps<T>) => {
+    const { control } = useFormContext<T>();
+
     return (
         <YStack>
-            {props.label && <Label htmlFor={props.id}>{props.label}</Label>}
-            <TextArea id={props.id} flex={1} placeholder={props.placeholder} />
+            {label && <Label htmlFor={name}>{label}</Label>}
+            <Controller
+                control={control}
+                name={name}
+                render={({ field: { onChange, value } }) => (
+                    <TextArea
+                        id={name}
+                        placeholder={props.placeholder}
+                        onChangeText={onChange}
+                        value={value}
+                    />
+                )}
+            />
         </YStack>
     );
-}
+};
 
 // TODO: do the same with extending tamagui props for other components
-type SelectItemValue = {
+type SelectItemValue = FieldValues & {
     name: string;
     value: string;
 };
-type SelectItemProps = SelectProps & { items: SelectItemValue[] };
 
-const SelectItem = (props: SelectItemProps) => {
-    // TODO: some default value
-    const [val, setVal] = useState<string | undefined>();
+type SelectItemProps<T extends FieldValues> = SelectProps &
+    Omit<ControllerProps<T>, 'render'> & {
+        items: SelectItemValue[];
+        placeholder?: string;
+    };
+
+const SelectItem = <T extends FieldValues>({
+    name,
+    placeholder,
+    items,
+    ...props
+}: SelectItemProps<T>) => {
+    const { control } = useFormContext<T>();
+    const media = useMedia();
 
     return (
-        <Select value={val} onValueChange={setVal} disablePreventBodyScroll {...props}>
-            <Select.Trigger width={220} iconAfter={ChevronDown}>
-                <Select.Value placeholder="Something" />
-            </Select.Trigger>
-
-            <Select.Content zIndex={200000}>
-                <Select.ScrollUpButton
-                    items="center"
-                    justify="center"
-                    position="relative"
-                    width="100%"
-                    height="$3">
-                    <YStack z={10}>
-                        <ChevronUp size={20} />
-                    </YStack>
-                    <LinearGradient
-                        start={[0, 0]}
-                        end={[0, 1]}
-                        fullscreen
-                        colors={['$background', 'transparent']}
-                        borderCurve="circular"
-                    />
-                </Select.ScrollUpButton>
-
-                <Select.Viewport
-                    // to do animations:
-                    // animation="quick"
-                    // animateOnly={['transform', 'opacity']}
-                    // enterStyle={{ o: 0, y: -10 }}
-                    // exitStyle={{ o: 0, y: 10 }}
-                    minW={200}>
-                    <Select.Group>
-                        {/* for longer lists memoizing these is useful */}
-                        {React.useMemo(
-                            () =>
-                                props.items.map((item, i) => {
-                                    return (
-                                        <Select.Item index={i} key={item.value} value={item.value}>
-                                            <Select.ItemText>{item.name}</Select.ItemText>
-                                            <Select.ItemIndicator marginLeft="auto">
-                                                <Check size={16} />
-                                            </Select.ItemIndicator>
-                                        </Select.Item>
-                                    );
-                                }),
-                            [props.items],
-                        )}
-                    </Select.Group>
-                    {/* Native gets an extra icon */}
-                    {props.native && (
-                        <YStack
-                            position="absolute"
-                            r={0}
-                            t={0}
-                            b={0}
-                            items="center"
-                            justify="center"
-                            width={'$4'}
-                            pointerEvents="none">
-                            <ChevronDown
-                                size={getFontSize((props.size as FontSizeTokens) ?? '$true')}
-                            />
-                        </YStack>
-                    )}
-                </Select.Viewport>
-
-                <Select.ScrollDownButton
-                    items="center"
-                    justify="center"
-                    position="relative"
-                    width="100%"
-                    height="$3">
-                    <YStack z={10}>
-                        <ChevronDown size={20} />
-                    </YStack>
-                    <LinearGradient
-                        start={[0, 0]}
-                        end={[0, 1]}
-                        fullscreen
-                        colors={['transparent', '$background']}
-                        borderCurve="circular"
-                    />
-                </Select.ScrollDownButton>
-            </Select.Content>
-        </Select>
+        <Controller
+            control={control}
+            name={name}
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+                <Select value={value} onValueChange={onChange} disablePreventBodyScroll>
+                    <Select.Trigger>
+                        <Select.Value placeholder={placeholder} />
+                    </Select.Trigger>
+                    <Adapt when={media.sm} platform="touch">
+                        <Sheet modal dismissOnSnapToBottom native animation="medium">
+                            {/* TODO: make it so it doesn't cover whole screen (?) */}
+                            {/* TODO:  pass ....props somewhere*/}
+                            {/* TODO: check if it works correctly with react hook form */}
+                            <Sheet.Frame>
+                                <Sheet.ScrollView>
+                                    <Adapt.Contents />
+                                </Sheet.ScrollView>
+                            </Sheet.Frame>
+                            <Sheet.Overlay />
+                        </Sheet>
+                    </Adapt>
+                    <Select.Content>
+                        <Select.Viewport>
+                            {items.map((option, index) => (
+                                <Select.Item index={index} key={option.value} value={option.value}>
+                                    <Select.ItemText>{option.name}</Select.ItemText>
+                                </Select.Item>
+                            ))}
+                        </Select.Viewport>
+                    </Select.Content>
+                </Select>
+            )}
+        />
     );
 };
 
-type SelectFieldProps = SelectItemProps & {
-    id: string;
-    label?: string;
-};
+type SelectFieldProps<T extends FieldValues> = Omit<ControllerProps<T>, 'render'> &
+    SelectItemProps<T> & {
+        // TODO: improve to use generic type instead of any
+        label?: string;
+    };
 
 const categories: SelectItemValue[] = [
     { name: 'Category 1', value: 'category1' },
@@ -189,44 +216,102 @@ const categories: SelectItemValue[] = [
     { name: 'Category 3', value: 'category3' },
 ];
 
-export const SelectField = ({ label, id, ...props }: SelectFieldProps) => {
+export const SelectField = <T extends FieldValues>({
+    label,
+    name,
+    ...props
+}: SelectFieldProps<T>) => {
     return (
         <YStack>
             {label && (
-                <Label htmlFor={id} flex={1} minW={80}>
+                <Label htmlFor={name} flex={1} minW={80}>
                     {label}
                 </Label>
             )}
-            <SelectItem id={id} {...props} />
+            <SelectItem id={name} name={name} {...props} />
         </YStack>
     );
 };
 
 export function CategorySelect() {
-    // TODO: this should be select
-    return <SelectField id="category" label="Category" items={categories} />;
+    return (
+        <SelectField
+            label="Category"
+            items={categories}
+            placeholder="Select category"
+            name="category_id"
+        />
+    );
 }
+
+type TransactionFormType = TransactionDto & {
+    amount: string;
+};
 
 // TODO: add react hook form
 export default function CreateTransaction() {
     const isLoading = false;
-    const onSubmit = () => {
-        console.log('onSubmit');
-    };
+    // TODO: form validation needed
+    const methods = useForm<TransactionFormType>({
+        // TODO: default values in other const
+        // TODO: form validation with zod
+        // TODO: error handling for fields
+        defaultValues: {
+            name: '',
+            amount: '',
+            description: '',
+            category_id: null,
+            expense: true,
+            transaction_date: new Date(),
+        },
+    });
+
+    const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
+
+    const queryClient = useQueryClient();
+    const createTransaction = useCreateTransaction({
+        onMutate: (newTransaction) => {
+            queryClient.setQueryData(transactionsKeys.lists(), (oldData) => {
+                return {
+                    ...oldData,
+                    data: [...oldData.data, newTransaction],
+                };
+            });
+            navigateToTransactionsList();
+        },
+        // perfomr optimistic update on transactions list
+    });
+
+    const onSubmit = methods.handleSubmit((data) => {
+        createTransaction.mutate({ ...data, amount: Number(data.amount) });
+    });
     return (
-        <YStack>
-            <Form gap="$2" onSubmit={onSubmit}>
-                <InputField label="Name" placeholder="Name" id="name" />
-                {/* TODO: should be text but accept numbers and later sum equasions */}
-                <InputField label="Amount" placeholder="Amount" id="amount" />
-                <IsExpenseController />
-                <InputField label="Date" placeholder="Date" id="date" />
-                <CategorySelect />
-                <TextAreaField label="Description" placeholder="Description" id="description" />
-                <Form.Trigger asChild disabled={isLoading}>
-                    <Button icon={isLoading ? <Spinner /> : undefined}>Submit</Button>
-                </Form.Trigger>
-            </Form>
-        </YStack>
+        <FormProvider {...methods}>
+            <ScrollView>
+                <YStack>
+                    <Form gap="$2" onSubmit={onSubmit}>
+                        <InputField label="Name" placeholder="Name" name="name" />
+                        {/* TODO: should be text but accept numbers and later sum equasions */}
+                        <InputField
+                            label="Amount"
+                            placeholder="Amount"
+                            name="amount"
+                            type="number"
+                        />
+                        <IsExpenseController />
+                        <DatePicker name="transaction_date" label="Date" />
+                        <CategorySelect />
+                        <TextAreaField
+                            label="Description"
+                            placeholder="Description"
+                            name="description"
+                        />
+                        <Form.Trigger asChild disabled={isLoading}>
+                            <Button icon={isLoading ? <Spinner /> : undefined}>Submit</Button>
+                        </Form.Trigger>
+                    </Form>
+                </YStack>
+            </ScrollView>
+        </FormProvider>
     );
 }

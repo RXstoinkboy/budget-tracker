@@ -1,13 +1,12 @@
 import { Button } from '@/components/button';
 import { Text, YStack, ScrollView, ListItem, H4, H6 } from 'tamagui';
 import { router } from 'expo-router';
-import { useCreateTransaction, useGetTransactions } from '@/features/transactions/api/query';
+import { useGetTransactions } from '@/features/transactions/api/query';
 
 export default function Tab() {
-    const createTransaction = useCreateTransaction();
     const onCreateTransaction = () => {
         // createTransaction.mutate();
-        router.push('/transactions/create');
+        router.push('/(app)/(tabs)/transactions/create');
     };
     const transactions = useGetTransactions();
 

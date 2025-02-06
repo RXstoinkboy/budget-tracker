@@ -1,5 +1,6 @@
 import { supabase } from '@/utils/supabase';
-import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useMutation, useQuery, UseMutationOptions } from '@tanstack/react-query';
+import { TransactionDto } from './types';
 
 export const transactionsKeys = {
     all: ['transactions'] as const,
@@ -9,16 +10,9 @@ export const transactionsKeys = {
     // detail: (id: number) => [...transactionsKeys.details(), id] as const,
 };
 
-const createTransaction = async () => {
-    const { error } = await supabase.from('transactions').insert({
-        name: 'test from app 1',
-        amount: 100.01,
-        description: 'test description',
-        // transaction_date: null,
-        receiptUrl: null,
-        expense: true,
-        category_id: null,
-    });
+const createTransaction = async (data: TransactionDto) => {
+    console.log('createTransaction react query', data);
+    const { error } = await supabase.from('transactions').insert(data);
 
     if (error) {
         throw error;
@@ -35,17 +29,25 @@ const getTransactions = async () => {
     return data;
 };
 
-export const useCreateTransaction = () => {
+export const useCreateTransaction = ({
+    onSuccess,
+    ...options
+}: UseMutationOptions<unknown, Error, TransactionDto>) => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: createTransaction,
-        // TODO: optimistic UI update
-        onSuccess: () => {
+        onError: (error) => {
+            console.error('--> create transaction error', error);
+            // I user optimistic update patter over here to update transactions list immediately after doing mutation
+            // here in on error I want to revert adding new transaction to the list if there is an error
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({
                 queryKey: transactionsKeys.lists(),
             });
         },
+        ...options,
     });
 };
 
