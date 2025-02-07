@@ -9,7 +9,7 @@ import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
 // fonts, styles
-import { TamaguiProvider } from 'tamagui';
+import { TamaguiProvider, YStack } from 'tamagui';
 import { tamaguiConfig } from '../tamagui.config';
 import { useFonts, Inter_400Regular, Inter_900Black } from '@expo-google-fonts/inter';
 import { QueryClientProvider } from '@/services/query-provider';
@@ -54,7 +54,9 @@ function RootLayout() {
             defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                 <GestureHandlerRootView style={{ flex: 1 }}>
-                    <Slot />
+                    <YStack flex={1} bg="$background">
+                        <Slot />
+                    </YStack>
                     {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="+not-found" /> */}
                     <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
