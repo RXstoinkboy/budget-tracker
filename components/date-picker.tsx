@@ -1,12 +1,6 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import {
-    ControllerProps,
-    Controller,
-    useFormContext,
-    FieldValues,
-    Path,
-    PathValue,
-} from 'react-hook-form';
+import { ControllerProps, Controller, useFormContext, FieldValues } from 'react-hook-form';
+import { Pressable } from 'react-native';
 import { InputProps, Input, Label, YStack } from 'tamagui';
 
 export type DatePickerProps<T extends FieldValues> = Omit<ControllerProps<T>, 'render'> &
@@ -27,8 +21,6 @@ export const DatePicker = <T extends FieldValues>({
             mode: 'date',
             value: new Date(),
             onChange: (event, date) => {
-                console.log('deafult', methods.getValues()[name]);
-                console.log('date', event, date);
                 methods.setValue(name, date as any);
             },
         });
@@ -40,13 +32,16 @@ export const DatePicker = <T extends FieldValues>({
                 control={control}
                 name={name}
                 render={({ field: { value } }) => (
-                    <Input
-                        onPress={showDatePicker}
-                        value={(value as Date).toLocaleDateString()}
-                        showSoftInputOnFocus={false}
-                        caretHidden
-                        {...props}
-                    />
+                    <Pressable onPress={showDatePicker}>
+                        <Input
+                            value={(value as Date).toLocaleDateString()}
+                            showSoftInputOnFocus={false}
+                            caretHidden
+                            editable={false}
+                            id={name}
+                            {...props}
+                        />
+                    </Pressable>
                 )}
             />
         </YStack>

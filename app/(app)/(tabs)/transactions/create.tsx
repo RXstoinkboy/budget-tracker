@@ -26,11 +26,11 @@ import {
     FieldValues,
     FormProvider,
 } from 'react-hook-form';
-import { transactionsKeys, useCreateTransaction } from '@/features/transactions/api/query';
+import { useCreateTransaction } from '@/features/transactions/api/query';
 import { DatePicker } from '@/components/date-picker';
 import { router } from 'expo-router';
 import { TransactionDto } from '@/features/transactions/api/types';
-import { useQueryClient } from '@tanstack/react-query';
+import { Keyboard } from 'react-native';
 
 export function RadioGroupItemWithLabel(props: { size: SizeTokens; value: string; label: string }) {
     const id = `radiogroup-${props.value}`;
@@ -102,7 +102,9 @@ export function InputField<T extends FieldValues>(props: InputFieldProps<T>) {
                         onChangeText={onChange}
                         value={value}
                         secureTextEntry={props.type === 'password'}
-                        keyboardType={props.type === 'number' ? 'numeric' : 'default'}
+                        keyboardType={props.type === 'number' ? 'number-pad' : 'default'}
+                        // TODO: I think it should be 'numeric' to work cross platform but for some reason input is laggy on 'numeric'
+                        // keyboardType={props.type === 'number' ? 'number-pad' : 'default'}
                         {...props}
                     />
                 )}
@@ -268,15 +270,8 @@ export default function CreateTransaction() {
 
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
 
-    const queryClient = useQueryClient();
     const createTransaction = useCreateTransaction({
         onMutate: (newTransaction) => {
-            queryClient.setQueryData(transactionsKeys.lists(), (oldData) => {
-                return {
-                    ...oldData,
-                    data: [...oldData.data, newTransaction],
-                };
-            });
             navigateToTransactionsList();
         },
         // perfomr optimistic update on transactions list
@@ -287,7 +282,7 @@ export default function CreateTransaction() {
     });
     return (
         <FormProvider {...methods}>
-            <ScrollView>
+            <ScrollView keyboardShouldPersistTaps="handled">
                 <YStack>
                     <Form gap="$2" onSubmit={onSubmit}>
                         <InputField label="Name" placeholder="Name" name="name" />
