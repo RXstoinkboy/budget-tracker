@@ -1,17 +1,17 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ControllerProps, Controller, useFormContext, FieldValues } from 'react-hook-form';
 import { Pressable } from 'react-native';
-import { InputProps, Input, Label, YStack } from 'tamagui';
+import { InputProps, Input, YStack } from 'tamagui';
+import { Label } from '@/components/label';
 
-export type DatePickerProps<T extends FieldValues> = Omit<ControllerProps<T>, 'render'> &
-    InputProps & {
-        label?: string;
-        name: string;
-    };
+export type DatePickerProps<T extends FieldValues> = InputProps & {
+    label?: string;
+    controller?: Omit<ControllerProps<T>, 'render'>;
+};
 
 export const DatePicker = <T extends FieldValues>({
     label,
-    name,
+    controller,
     ...props
 }: DatePickerProps<T>) => {
     const { control, ...methods } = useFormContext<T>();
@@ -21,16 +21,16 @@ export const DatePicker = <T extends FieldValues>({
             mode: 'date',
             value: new Date(),
             onChange: (event, date) => {
-                methods.setValue(name, date as any);
+                methods.setValue(controller.name, date as any);
             },
         });
     };
     return (
         <YStack>
-            {label && <Label htmlFor={name}>{label}</Label>}
+            {label && <Label htmlFor={controller.name}>{label}</Label>}
             <Controller
                 control={control}
-                name={name}
+                {...controller}
                 render={({ field: { value } }) => (
                     <Pressable onPress={showDatePicker}>
                         <Input
@@ -38,7 +38,7 @@ export const DatePicker = <T extends FieldValues>({
                             showSoftInputOnFocus={false}
                             caretHidden
                             editable={false}
-                            id={name}
+                            id={controller.name}
                             {...props}
                         />
                     </Pressable>
