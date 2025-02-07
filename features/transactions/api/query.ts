@@ -11,7 +11,6 @@ export const transactionsKeys = {
 };
 
 const createTransaction = async (data: TransactionDto) => {
-    console.log('createTransaction react query', data);
     const { error } = await supabase.from('transactions').insert(data);
 
     if (error) {
@@ -31,16 +30,29 @@ const getTransactions = async () => {
 
 export const useCreateTransaction = ({
     onSuccess,
+    onMutate,
     ...options
 }: UseMutationOptions<unknown, Error, TransactionDto>) => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: createTransaction,
-        onError: (error) => {
+        onMutate: async (newTransaction) => {
+            await queryClient.cancelQueries({
+                queryKey: transactionsKeys.lists(),
+            });
+            const previousSnapshot = queryClient.getQueryData(transactionsKeys.lists());
+
+            queryClient.setQueryData<TransactionDto[]>(transactionsKeys.lists(), (oldData) => {
+                return [newTransaction, ...oldData];
+            });
+
+            onMutate?.(newTransaction);
+            return { previousSnapshot };
+        },
+        onError: (error, newTransaction, context: { previousSnapshot: TransactionDto[] }) => {
             console.error('--> create transaction error', error);
-            // I user optimistic update patter over here to update transactions list immediately after doing mutation
-            // here in on error I want to revert adding new transaction to the list if there is an error
+            queryClient.setQueryData(transactionsKeys.lists(), context?.previousSnapshot);
         },
         onSettled: () => {
             queryClient.invalidateQueries({
