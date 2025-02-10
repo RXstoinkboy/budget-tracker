@@ -4,10 +4,12 @@ export type TransactionDto = {
     amount: number;
     description: string | null;
     transaction_date: string;
-    receiptUrl: string | null;
+    receipt_url: string | null;
     expense: boolean;
     category_id: string | null;
 };
+
+export type CreateTransactionDto = Omit<TransactionDto, 'id'>;
 
 export type TransactionFilters = {
     order_by_desc?: boolean;

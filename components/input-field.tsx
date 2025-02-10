@@ -1,11 +1,11 @@
 import { Controller, ControllerProps, FieldValues, useFormContext } from 'react-hook-form';
-import { InputProps, YStack, Input } from 'tamagui';
+import { Text, InputProps, YStack, Input, XStack } from 'tamagui';
 import { Label } from '@/components/label';
 
 type InputFieldProps<T extends FieldValues> = InputProps & {
     type?: 'text' | 'password' | 'number';
     label?: string;
-    controller?: Omit<ControllerProps<T>, 'render'>;
+    controller: Omit<ControllerProps<T>, 'render'>;
 };
 export function InputField<T extends FieldValues>({
     controller,
@@ -17,7 +17,10 @@ export function InputField<T extends FieldValues>({
 
     return (
         <YStack>
-            {label && <Label htmlFor={controller.name}>{label}</Label>}
+            <XStack items="center" gap="$1">
+                {label && <Label htmlFor={controller.name}>{label}</Label>}
+                {controller.rules?.required && <Text>*</Text>}
+            </XStack>
             <Controller
                 control={control}
                 {...controller}

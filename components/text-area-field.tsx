@@ -4,7 +4,7 @@ import { Label } from '@/components/label';
 
 export type TextAreaFieldProps<T extends FieldValues> = TextAreaProps & {
     label?: string;
-    controller?: Omit<ControllerProps<T>, 'render'>;
+    controller: Omit<ControllerProps<T>, 'render'>;
 };
 
 export const TextAreaField = <T extends FieldValues>({
