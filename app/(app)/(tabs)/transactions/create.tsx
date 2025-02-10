@@ -36,7 +36,6 @@ const TransactionFormSchema = z.object({
 type TransactionFormType = z.infer<typeof TransactionFormSchema>;
 
 export default function CreateTransaction() {
-    const isLoading = false;
     const methods = useForm<TransactionFormType>({
         defaultValues: {
             description: null,
@@ -50,9 +49,7 @@ export default function CreateTransaction() {
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
 
     const createTransaction = useCreateTransaction({
-        onMutate: (newTransaction) => {
-            navigateToTransactionsList();
-        },
+        onMutate: navigateToTransactionsList,
     });
 
     const onSubmit = methods.handleSubmit((data) => {
@@ -61,7 +58,7 @@ export default function CreateTransaction() {
             amount: Number(data.amount),
             expense: data.expense === 'true',
             receipt_url: null,
-            transaction_date: data.transaction_date.toISO() || DateTime.now().toISO(),
+            transaction_date: data.transaction_date.toISODate() || DateTime.now().toISODate(),
         });
     });
     return (
@@ -98,8 +95,12 @@ export default function CreateTransaction() {
                             placeholder="Description"
                             controller={{ name: 'description' }}
                         />
-                        <Form.Trigger asChild disabled={isLoading || !methods.formState.isValid}>
-                            <Button icon={isLoading ? <Spinner /> : undefined}>Submit</Button>
+                        <Form.Trigger
+                            asChild
+                            disabled={createTransaction.isPending || !methods.formState.isValid}>
+                            <Button icon={createTransaction.isPending ? <Spinner /> : undefined}>
+                                Submit
+                            </Button>
                         </Form.Trigger>
                     </Form>
                 </YStack>

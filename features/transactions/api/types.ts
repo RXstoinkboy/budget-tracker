@@ -15,7 +15,7 @@ export type TransactionFilters = {
     order_by_desc?: boolean;
 };
 
-export type TransactionListResponse = {
+export type TransactionsListResponse = {
     transaction_date: string;
     transactions: TransactionDto[];
 }[];
