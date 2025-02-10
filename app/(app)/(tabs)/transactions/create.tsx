@@ -8,6 +8,7 @@ import { InputField } from '@/components/input-field';
 import { SelectField, SelectOption } from '@/components/select-field';
 import { TextAreaField } from '@/components/text-area-field';
 import { RadioGroup, RadioGroupOption } from '@/components/radio-group';
+import { DateTime } from 'luxon';
 
 // TODO: fetch categories from API
 const categories: SelectOption[] = [
@@ -21,14 +22,14 @@ const expenseItems: RadioGroupOption[] = [
     { label: 'Income', value: 'false' },
 ];
 
-type TransactionFormType = Omit<TransactionDto, 'amount'> & {
+type TransactionFormType = Omit<TransactionDto, 'amount' | 'transaction_date' | 'expense'> & {
     amount: string;
+    expense: string;
+    transaction_date: DateTime;
 };
 
-// TODO: add react hook form
 export default function CreateTransaction() {
     const isLoading = false;
-    // TODO: form validation needed
     const methods = useForm<TransactionFormType>({
         // TODO: form validation with zod
         // TODO: error handling for fields
@@ -37,8 +38,8 @@ export default function CreateTransaction() {
             amount: '',
             description: '',
             category_id: null,
-            expense: true,
-            transaction_date: new Date(),
+            expense: 'true',
+            transaction_date: DateTime.now(),
         },
     });
 
@@ -51,7 +52,12 @@ export default function CreateTransaction() {
     });
 
     const onSubmit = methods.handleSubmit((data) => {
-        createTransaction.mutate({ ...data, amount: Number(data.amount) });
+        createTransaction.mutate({
+            ...data,
+            amount: Number(data.amount),
+            expense: data.expense === 'true',
+            transaction_date: data.transaction_date.toISO(),
+        });
     });
     return (
         <FormProvider {...methods}>
@@ -60,6 +66,7 @@ export default function CreateTransaction() {
                     <Form gap="$2" onSubmit={onSubmit}>
                         <InputField label="Name" placeholder="Name" controller={{ name: 'name' }} />
                         {/* TODO: should be text but accept numbers and later sum equasions */}
+                        {/* TODO: or actually it might still accept only numbers but there can be separate button "+" to add next number */}
                         <InputField
                             label="Amount"
                             placeholder="Amount"

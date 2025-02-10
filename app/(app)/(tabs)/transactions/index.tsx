@@ -1,11 +1,10 @@
 import { Button } from '@/components/button';
-import { Text, YStack, ScrollView, ListItem, H4, H6 } from 'tamagui';
+import { YStack, XStack, ScrollView, ListItem, H4, H6, Text, Card } from 'tamagui';
 import { router } from 'expo-router';
 import { useGetTransactions } from '@/features/transactions/api/query';
 
 export default function Tab() {
     const onCreateTransaction = () => {
-        // createTransaction.mutate();
         router.push('/(app)/(tabs)/transactions/create');
     };
     const transactions = useGetTransactions();
@@ -17,11 +16,26 @@ export default function Tab() {
                 {!transactions.data?.length && (
                     <H6>No transactions yet. Add some manually or integrate your bank accout</H6>
                 )}
-                {transactions.data?.map((transaction) => (
-                    <ListItem key={transaction.id}>
-                        <Text>{transaction.name}</Text>
-                    </ListItem>
-                ))}
+                <YStack gap="$4">
+                    {transactions.data?.map((dayTransactions) => (
+                        <Card key={dayTransactions.transaction_date}>
+                            <Card.Header>
+                                <Text>{dayTransactions.transaction_date}</Text>
+                            </Card.Header>
+                            {dayTransactions.transactions.map((transaction) => (
+                                <ListItem key={transaction.id}>
+                                    <XStack flex={1} justify="space-between">
+                                        <Text>{transaction.name}</Text>
+                                        <Text
+                                            color={
+                                                transaction.expense ? '$red10' : '$green10'
+                                            }>{`${transaction.expense ? '-' : '+'} ${transaction.amount}`}</Text>
+                                    </XStack>
+                                </ListItem>
+                            ))}
+                        </Card>
+                    ))}
+                </YStack>
             </ScrollView>
             {/* <Link
                 action={{

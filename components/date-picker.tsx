@@ -3,6 +3,7 @@ import { ControllerProps, Controller, useFormContext, FieldValues } from 'react-
 import { Pressable } from 'react-native';
 import { InputProps, Input, YStack } from 'tamagui';
 import { Label } from '@/components/label';
+import { DateTime } from 'luxon';
 
 export type DatePickerProps<T extends FieldValues> = InputProps & {
     label?: string;
@@ -21,7 +22,7 @@ export const DatePicker = <T extends FieldValues>({
             mode: 'date',
             value: new Date(),
             onChange: (event, date) => {
-                methods.setValue(controller.name, date as any);
+                methods.setValue(controller.name, DateTime.fromJSDate(date));
             },
         });
     };
@@ -34,7 +35,7 @@ export const DatePicker = <T extends FieldValues>({
                 render={({ field: { value } }) => (
                     <Pressable onPress={showDatePicker}>
                         <Input
-                            value={(value as Date).toLocaleDateString()}
+                            value={(value as DateTime).toISODate()}
                             showSoftInputOnFocus={false}
                             caretHidden
                             editable={false}

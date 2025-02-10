@@ -1,11 +1,15 @@
+import {
+    TransactionDto,
+    TransactionFilters,
+    TransactionListResponse,
+} from '@/features/transactions/api/types';
 import { supabase } from '@/utils/supabase';
 import { useQueryClient, useMutation, useQuery, UseMutationOptions } from '@tanstack/react-query';
-import { TransactionDto } from './types';
 
 export const transactionsKeys = {
     all: ['transactions'] as const,
     lists: () => [...transactionsKeys.all, 'list'] as const,
-    // list: (filters: string) => [...transactionsKeys.lists(), { filters }] as const,
+    list: (filters: TransactionFilters) => [...transactionsKeys.lists(), { filters }] as const,
     // details: () => [...transactionsKeys.all, 'detail'] as const,
     // detail: (id: number) => [...transactionsKeys.details(), id] as const,
 };
@@ -18,8 +22,8 @@ const createTransaction = async (data: TransactionDto) => {
     }
 };
 
-const getTransactions = async () => {
-    const { data, error } = await supabase.from('transactions').select('*');
+const getTransactions = async (filters: TransactionFilters) => {
+    const { data, error } = await supabase.rpc('get_transactions_grouped_by_date', filters);
 
     if (error) {
         throw error;
@@ -63,9 +67,9 @@ export const useCreateTransaction = ({
     });
 };
 
-export const useGetTransactions = () => {
-    return useQuery({
-        queryKey: transactionsKeys.lists(),
-        queryFn: getTransactions,
+export const useGetTransactions = (filters: TransactionFilters = { order_by_desc: true }) => {
+    return useQuery<TransactionFilters, Error, TransactionListResponse>({
+        queryKey: transactionsKeys.list(filters),
+        queryFn: () => getTransactions(filters),
     });
 };
