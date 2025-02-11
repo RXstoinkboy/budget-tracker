@@ -3,7 +3,12 @@ import { YStack, XStack, ScrollView, ListItem, H6, Text, Card } from 'tamagui';
 import { router } from 'expo-router';
 import { transactionsKeys, useGetTransactions } from '@/features/transactions/api/query';
 import { useMutationState } from '@tanstack/react-query';
-import { CreateTransactionDto } from '@/features/transactions/api/types';
+import {
+    CreateTransactionDto,
+    TransactionDto,
+    UpdateTransactionDto,
+} from '@/features/transactions/api/types';
+import { Pressable } from 'react-native';
 
 const TransactionItem = (props: CreateTransactionDto) => {
     return (
@@ -20,14 +25,28 @@ const TransactionItem = (props: CreateTransactionDto) => {
 };
 
 export default function Tab() {
-    const onCreateTransaction = () => {
+    const navigateToCreate = () => {
         router.push('/(app)/(tabs)/transactions/create');
     };
+    const navigateToEdit = (id: string) => {
+        router.push({
+            pathname: '/(app)/(tabs)/transactions/[id]',
+            params: {
+                id,
+            },
+        });
+    };
     const transactions = useGetTransactions();
-    const newTransaction = useMutationState<CreateTransactionDto>({
+    const newTransactions = useMutationState<CreateTransactionDto>({
         filters: { mutationKey: transactionsKeys.create(), status: 'pending' },
         select: (mutation) => mutation.state.variables as CreateTransactionDto,
     });
+    const updatedTransactions = useMutationState<TransactionDto>({
+        filters: { mutationKey: transactionsKeys.updates(), status: 'pending' },
+        select: (mutation) => mutation.state.variables as UpdateTransactionDto,
+    });
+
+    console.log('updated transactions', updatedTransactions);
 
     return (
         <YStack flex={1}>
@@ -42,16 +61,34 @@ export default function Tab() {
                             <Card.Header>
                                 <Text>{dayTransactions.transaction_date}</Text>
                             </Card.Header>
-                            {newTransaction.map(
+                            {newTransactions.map(
                                 (transaction, index) =>
                                     dayTransactions.transaction_date ===
                                         transaction.transaction_date && (
                                         <TransactionItem key={index} {...transaction} />
                                     ),
                             )}
-                            {dayTransactions.transactions.map((transaction) => (
-                                <TransactionItem key={transaction.id} {...transaction} />
-                            ))}
+                            {dayTransactions.transactions.map((transaction) => {
+                                const updatedTransaction = updatedTransactions.findLast(
+                                    (t) => t.id === transaction.id,
+                                );
+                                if (updatedTransaction) {
+                                    return (
+                                        <Pressable
+                                            key={transaction.id}
+                                            onPress={() => navigateToEdit(updatedTransaction.id)}>
+                                            <TransactionItem {...updatedTransaction} />
+                                        </Pressable>
+                                    );
+                                }
+                                return (
+                                    <Pressable
+                                        key={transaction.id}
+                                        onPress={() => navigateToEdit(transaction.id)}>
+                                        <TransactionItem {...transaction} />
+                                    </Pressable>
+                                );
+                            })}
                         </Card>
                     ))}
                 </YStack>
@@ -63,7 +100,7 @@ export default function Tab() {
                 href="/(tabs)/transactions/create">
                 <Button>Create transaction</Button>
             </Link> */}
-            <Button onPress={onCreateTransaction}>Create transaction</Button>
+            <Button onPress={navigateToCreate}>Create transaction</Button>
         </YStack>
     );
 }

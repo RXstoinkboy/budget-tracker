@@ -10,6 +10,7 @@ export type TransactionDto = {
 };
 
 export type CreateTransactionDto = Omit<TransactionDto, 'id'>;
+export type UpdateTransactionDto = TransactionDto;
 
 export type TransactionFilters = {
     order_by_desc?: boolean;
