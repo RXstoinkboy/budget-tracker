@@ -46,8 +46,6 @@ export default function Tab() {
         select: (mutation) => mutation.state.variables as UpdateTransactionDto,
     });
 
-    console.log('updated transactions', updatedTransactions);
-
     return (
         <YStack flex={1}>
             <ScrollView>
@@ -69,7 +67,7 @@ export default function Tab() {
                                     ),
                             )}
                             {dayTransactions.transactions.map((transaction) => {
-                                const updatedTransaction = updatedTransactions.findLast(
+                                const updatedTransaction = updatedTransactions.find(
                                     (t) => t.id === transaction.id,
                                 );
                                 if (updatedTransaction) {
