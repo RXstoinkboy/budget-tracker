@@ -1,3 +1,4 @@
+import { useAuthSession } from '@/features/auth/query';
 import {
     ChartSpline,
     ClipboardList,
@@ -5,11 +6,20 @@ import {
     ListCheck,
     MoreHorizontal,
 } from '@tamagui/lucide-icons';
-import { Tabs } from 'expo-router';
-import { GetThemeValueForKey } from 'tamagui';
+import { Redirect, Tabs } from 'expo-router';
+import { GetThemeValueForKey, Spinner } from 'tamagui';
 
 export default function TabLayout() {
-    // const theme = useTheme();
+    const session = useAuthSession();
+
+    if (session.isLoading) {
+        return <Spinner size="large" />;
+    }
+
+    if (!session?.data?.user) {
+        return <Redirect href="/sign-in" />;
+    }
+
     return (
         <Tabs
             screenOptions={{

@@ -89,12 +89,13 @@ export function useSignUpWithEmail() {
 }
 
 async function signOut() {
-    try {
-        console.log('signOut react query');
-        return supabase.auth.signOut();
-    } catch (error) {
-        console.error('--> sign out error', error);
+    const { error, ...response } = await supabase.auth.signOut();
+
+    if (error) {
+        throw error;
     }
+
+    return true;
 }
 
 export function useSignOut() {
@@ -109,6 +110,9 @@ export function useSignOut() {
                     user: null,
                 };
             });
+        },
+        onError: (error) => {
+            console.error('Sign out error:', error);
         },
     });
 }
