@@ -1,7 +1,7 @@
 import { supabase } from '@/utils/supabase';
 import { useQuery } from '@tanstack/react-query';
-import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
-import { formatToCategoryTree } from './utils';
+import { CategoriesWithChildren, CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
+import { formatToCategoryTree, formatTreeToSelectOptions } from './utils';
 import { SelectOption } from '@/components/select-field';
 
 export const categoriesKeys = {
@@ -41,14 +41,12 @@ const updateCategory = async ({ id, ...data }: UpdateCategoryDto) => {
     }
 };
 
-type Tree = Record<string, CategoryDto & { children?: CategoryDto[] }>;
-
 export const useGetCategories = () => {
     return useQuery<
         CategoryDto[],
         Error,
         {
-            tree: Tree;
+            tree: CategoriesWithChildren;
             list: CategoryDto[];
             selectOptions: SelectOption[];
         }
@@ -56,13 +54,12 @@ export const useGetCategories = () => {
         queryKey: categoriesKeys.list(),
         queryFn: getCategories,
         select: (data) => {
+            const tree = formatToCategoryTree(data);
+            const selectOptions = formatTreeToSelectOptions(tree);
             return {
-                tree: formatToCategoryTree(data),
+                tree,
                 list: data,
-                selectOptions: data.map((category) => ({
-                    name: category.name,
-                    value: category.id,
-                })),
+                selectOptions,
             };
         },
     });

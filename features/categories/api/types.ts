@@ -7,6 +7,8 @@ export type CategoryDto = {
     type: string;
 };
 
-export type CreateCategoryDto = Omit<CategoryDto, 'id'>;
+export type CategoryWithChildren = CategoryDto & { children: CategoryDto[] };
+export type CategoriesWithChildren = CategoryWithChildren[];
 
+export type CreateCategoryDto = Omit<CategoryDto, 'id'>;
 export type UpdateCategoryDto = CategoryDto;
