@@ -1,27 +1,11 @@
 import { Button } from '@/components/button';
 import { useGetCategories } from '@/features/categories/api/query';
-import { CategoryDto } from '@/features/categories/api/types';
-import { CirclePlus, Dot, FolderOutput, FolderTree, Trash } from '@tamagui/lucide-icons';
+import { CirclePlus, Dot, FolderOutput, Trash } from '@tamagui/lucide-icons';
 import { ListItem, ScrollView, XStack, YGroup, YStack, Text } from 'tamagui';
-
-const formatToCategoryTree = (categories: CategoryDto[]) => {
-    return categories.reduce(
-        (acc, category) => {
-            if (!category.parent_id) {
-                acc[category.id] = { ...category, children: [] };
-            } else {
-                acc[category.parent_id].children?.push(category);
-            }
-
-            return acc;
-        },
-        {} as Record<string, CategoryDto & { children?: CategoryDto[] }>,
-    );
-};
 
 export default function Categories() {
     const categories = useGetCategories();
-    const categoriesTree = formatToCategoryTree(categories.data ?? []);
+    const categoriesTree = categories.data?.tree || {};
 
     return (
         <YStack gap="$4" p="$2">

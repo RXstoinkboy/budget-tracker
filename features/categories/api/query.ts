@@ -1,6 +1,7 @@
 import { supabase } from '@/utils/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
+import { formatToCategoryTree } from './utils';
 
 export const categoriesKeys = {
     all: ['categories'] as const,
@@ -20,7 +21,7 @@ const getCategories = async () => {
         throw error;
     }
 
-    return data;
+    return data as CategoryDto[];
 };
 
 const createCategory = async (data: CreateCategoryDto) => {
@@ -39,9 +40,24 @@ const updateCategory = async ({ id, ...data }: UpdateCategoryDto) => {
     }
 };
 
+type Tree = Record<string, CategoryDto & { children?: CategoryDto[] }>;
+
 export const useGetCategories = () => {
-    return useQuery<unknown, Error, CategoryDto[]>({
+    return useQuery<
+        CategoryDto[],
+        Error,
+        {
+            tree: Tree;
+            list: CategoryDto[];
+        }
+    >({
         queryKey: categoriesKeys.list(),
         queryFn: getCategories,
+        select: (data) => {
+            return {
+                tree: formatToCategoryTree(data),
+                list: data,
+            };
+        },
     });
 };
