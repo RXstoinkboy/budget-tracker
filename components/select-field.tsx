@@ -1,11 +1,13 @@
 import { FieldValues, useFormContext, ControllerProps, Controller } from 'react-hook-form';
 import { SelectProps, useMedia, Select, Adapt, Sheet, YStack } from 'tamagui';
 import { Label } from '@/components/label';
+import { ReactNode } from 'react';
 
 // TODO: do the same with extending tamagui props for other components
 export type SelectOption = FieldValues & {
     name: string;
     value: string;
+    left?: ReactNode;
 };
 
 type SelectItemProps<T extends FieldValues> = SelectProps & {
@@ -54,6 +56,7 @@ const SelectDropdown = <T extends FieldValues>({
                         <Select.Viewport>
                             {options.map((option, index) => (
                                 <Select.Item index={index} key={option.value} value={option.value}>
+                                    {option.left}
                                     <Select.ItemText>{option.name}</Select.ItemText>
                                 </Select.Item>
                             ))}
