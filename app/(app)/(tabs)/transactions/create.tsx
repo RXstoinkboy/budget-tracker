@@ -11,13 +11,7 @@ import { DateTime } from 'luxon';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/button';
-
-// TODO: fetch categories from API
-const categories: SelectOption[] = [
-    { name: 'Category 1', value: 'category1' },
-    { name: 'Category 2', value: 'category2' },
-    { name: 'Category 3', value: 'category3' },
-];
+import { useGetCategories } from '@/features/categories/api/query';
 
 const expenseItems: RadioGroupOption[] = [
     { label: 'Expense', value: 'true' },
@@ -45,6 +39,7 @@ export default function CreateTransaction() {
         },
         resolver: zodResolver(TransactionFormSchema),
     });
+    const categories = useGetCategories();
 
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
 
@@ -85,7 +80,7 @@ export default function CreateTransaction() {
                         <DatePicker label="Date" controller={{ name: 'transaction_date' }} />
                         <SelectField
                             label="Category"
-                            options={categories}
+                            options={categories.data?.selectOptions ?? []}
                             placeholder="Select category"
                             controller={{
                                 name: 'category_id',

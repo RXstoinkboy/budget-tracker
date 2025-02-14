@@ -2,6 +2,7 @@ import { supabase } from '@/utils/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
 import { formatToCategoryTree } from './utils';
+import { SelectOption } from '@/components/select-field';
 
 export const categoriesKeys = {
     all: ['categories'] as const,
@@ -49,6 +50,7 @@ export const useGetCategories = () => {
         {
             tree: Tree;
             list: CategoryDto[];
+            selectOptions: SelectOption[];
         }
     >({
         queryKey: categoriesKeys.list(),
@@ -57,6 +59,10 @@ export const useGetCategories = () => {
             return {
                 tree: formatToCategoryTree(data),
                 list: data,
+                selectOptions: data.map((category) => ({
+                    name: category.name,
+                    value: category.id,
+                })),
             };
         },
     });

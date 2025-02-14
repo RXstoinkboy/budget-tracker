@@ -13,13 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/button';
 import { TransactionDto } from '@/features/transactions/api/types';
 import { useEffect } from 'react';
-
-// TODO: fetch categories from API
-const categories: SelectOption[] = [
-    { name: 'Category 1', value: 'category1' },
-    { name: 'Category 2', value: 'category2' },
-    { name: 'Category 3', value: 'category3' },
-];
+import { useGetCategories } from '@/features/categories/api/query';
 
 // TODO: reuse between this and create
 const expenseItems: RadioGroupOption[] = [
@@ -53,6 +47,7 @@ export default function EditTransaction() {
     const { id } = useLocalSearchParams();
     const idString = id as string;
     const transactionDetails = useGetTransactionDetails(idString);
+    const categories = useGetCategories();
 
     const methods = useForm<TransactionFormType>({
         defaultValues: {
@@ -114,7 +109,7 @@ export default function EditTransaction() {
                         <DatePicker label="Date" controller={{ name: 'transaction_date' }} />
                         <SelectField
                             label="Category"
-                            options={categories}
+                            options={categories.data?.selectOptions ?? []}
                             placeholder="Select category"
                             controller={{
                                 name: 'category_id',
