@@ -8,6 +8,10 @@ export default function SettingsLayout() {
                 name="profile"
                 options={{ headerTitle: 'Profile', presentation: 'modal' }}
             />
+            <Stack.Screen
+                name="categories"
+                options={{ headerTitle: 'Categories', presentation: 'modal' }}
+            />
         </Stack>
     );
 }
