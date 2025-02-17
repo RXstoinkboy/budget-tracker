@@ -15,24 +15,20 @@ export default function Categories() {
     const categories = useGetCategories();
     const categoriesTree = categories.data?.tree || [];
     const [open, setOpen] = useState(false);
-    const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
-    const [parentId, setParentId] = useState<string | undefined>(undefined);
+    const [parentCategory, setParentCategory] = useState<CategoryDto | null>(null);
     const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<CategoryDto | null>(null);
 
     const openSheet = () => {
+        setParentCategory(null);
         setOpen(true);
     };
     const closeSheet = () => {
         setOpen(false);
     };
-    const openUpdateSheet = (id: CategoryDto['id']) => {
-        setParentId(id);
-        setUpdateSheetOpen(true);
-    };
-    const closeUpdateSheetSheet = () => {
-        setUpdateSheetOpen(false);
-        setParentId(undefined);
+    const openCreateSubcategorySheet = (parentId: CategoryDto) => {
+        setParentCategory(parentId);
+        setOpen(true);
     };
 
     const openDeleteConfirmationSheet = (category: CategoryDto) => {
@@ -54,13 +50,17 @@ export default function Categories() {
             <ScrollView>
                 <YGroup size="$4">
                     {newCategories.map((newCategory, index) => {
-                        return (
-                            <YGroup.Item key={index}>
-                                <CategoryParent
-                                    category={{ ...newCategory, id: new Date().toString() }}
-                                />
-                            </YGroup.Item>
-                        );
+                        if (newCategory.parent_id === null) {
+                            return (
+                                <YGroup.Item key={index}>
+                                    <CategoryParent
+                                        isGhost
+                                        category={{ ...newCategory, id: new Date().toString() }}
+                                    />
+                                </YGroup.Item>
+                            );
+                        }
+                        return null;
                     })}
                     {categoriesTree.map((category) => {
                         const children = category.children;
@@ -75,10 +75,29 @@ export default function Categories() {
                                     <CategoryParent
                                         category={category}
                                         onDelete={() => openDeleteConfirmationSheet(category)}
+                                        onCreateSubcategory={() =>
+                                            openCreateSubcategorySheet(category)
+                                        }
                                     />
                                     <YStack>
                                         {children && (
                                             <YGroup>
+                                                {newCategories.map((newChild, index) => {
+                                                    if (newChild.parent_id === category.id) {
+                                                        return (
+                                                            <YGroup.Item key={index}>
+                                                                <CategoryChild
+                                                                    isGhost
+                                                                    category={{
+                                                                        ...newChild,
+                                                                        id: new Date().toString(),
+                                                                    }}
+                                                                />
+                                                            </YGroup.Item>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })}
                                                 {children.map((child) => {
                                                     if (removedCategoriesIds.includes(child.id)) {
                                                         return null;
@@ -110,10 +129,11 @@ export default function Categories() {
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>
-                <CreateCategoryForm autoFocus={open} onSubmit={closeSheet} />
-            </Sheet>
-            <Sheet open={updateSheetOpen} onOpenChange={setUpdateSheetOpen}>
-                <CreateCategoryForm autoFocus={updateSheetOpen} onSubmit={closeUpdateSheetSheet} />
+                <CreateCategoryForm
+                    autoFocus={open}
+                    onSubmit={closeSheet}
+                    parentCategory={parentCategory}
+                />
             </Sheet>
             <DeleteConfirmationSheet
                 open={deleteConfirmationOpen}
