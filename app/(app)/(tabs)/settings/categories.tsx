@@ -15,11 +15,25 @@ export default function Categories() {
     const categories = useGetCategories();
     const categoriesTree = categories.data?.tree || [];
     const [open, setOpen] = useState(false);
+    const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
+    const [parentId, setParentId] = useState<string | undefined>(undefined);
     const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<CategoryDto | null>(null);
 
-    const openSheet = () => setOpen(true);
-    const closeSheet = () => setOpen(false);
+    const openSheet = () => {
+        setOpen(true);
+    };
+    const closeSheet = () => {
+        setOpen(false);
+    };
+    const openUpdateSheet = (id: CategoryDto['id']) => {
+        setParentId(id);
+        setUpdateSheetOpen(true);
+    };
+    const closeUpdateSheetSheet = () => {
+        setUpdateSheetOpen(false);
+        setParentId(undefined);
+    };
 
     const openDeleteConfirmationSheet = (category: CategoryDto) => {
         setCategoryToDelete(category);
@@ -29,6 +43,10 @@ export default function Categories() {
     const newCategories = useMutationState<CreateCategoryDto>({
         filters: { mutationKey: categoriesKeys.create(), status: 'pending' },
         select: (mutation) => mutation.state.variables as CreateCategoryDto,
+    });
+    const removedCategoriesIds = useMutationState<CategoryDto['id']>({
+        filters: { mutationKey: categoriesKeys.delete(), status: 'pending' },
+        select: (mutation) => mutation.state.variables as CategoryDto['id'],
     });
 
     return (
@@ -47,6 +65,10 @@ export default function Categories() {
                     {categoriesTree.map((category) => {
                         const children = category.children;
 
+                        if (removedCategoriesIds.includes(category.id)) {
+                            return null;
+                        }
+
                         return (
                             <YGroup.Item key={category.id}>
                                 <YStack>
@@ -57,16 +79,23 @@ export default function Categories() {
                                     <YStack>
                                         {children && (
                                             <YGroup>
-                                                {children.map((child) => (
-                                                    <YGroup.Item key={child.id}>
-                                                        <CategoryChild
-                                                            category={child}
-                                                            onDelete={() =>
-                                                                openDeleteConfirmationSheet(child)
-                                                            }
-                                                        />
-                                                    </YGroup.Item>
-                                                ))}
+                                                {children.map((child) => {
+                                                    if (removedCategoriesIds.includes(child.id)) {
+                                                        return null;
+                                                    }
+                                                    return (
+                                                        <YGroup.Item key={child.id}>
+                                                            <CategoryChild
+                                                                category={child}
+                                                                onDelete={() =>
+                                                                    openDeleteConfirmationSheet(
+                                                                        child,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </YGroup.Item>
+                                                    );
+                                                })}
                                             </YGroup>
                                         )}
                                     </YStack>
@@ -82,6 +111,9 @@ export default function Categories() {
 
             <Sheet open={open} onOpenChange={setOpen}>
                 <CreateCategoryForm autoFocus={open} onSubmit={closeSheet} />
+            </Sheet>
+            <Sheet open={updateSheetOpen} onOpenChange={setUpdateSheetOpen}>
+                <CreateCategoryForm autoFocus={updateSheetOpen} onSubmit={closeUpdateSheetSheet} />
             </Sheet>
             <DeleteConfirmationSheet
                 open={deleteConfirmationOpen}

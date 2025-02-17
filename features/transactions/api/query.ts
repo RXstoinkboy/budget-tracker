@@ -77,7 +77,7 @@ export const useCreateTransaction = (
             console.error('--> create transaction error', error);
         },
         onSettled: () => {
-            queryClient.invalidateQueries({
+            return queryClient.invalidateQueries({
                 queryKey: transactionsKeys.lists(),
             });
         },
@@ -97,12 +97,14 @@ export const useUpdateTransaction = (
             console.error('--> update transaction error', error);
         },
         onSettled: (data, error, variables) => {
-            queryClient.invalidateQueries({
-                queryKey: transactionsKeys.lists(),
-            });
-            queryClient.invalidateQueries({
-                queryKey: transactionsKeys.detail(variables.id),
-            });
+            return Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: transactionsKeys.lists(),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: transactionsKeys.detail(variables.id),
+                }),
+            ]);
         },
         mutationKey: transactionsKeys.updates(),
         ...options,

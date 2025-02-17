@@ -1,5 +1,11 @@
 import { supabase } from '@/utils/supabase';
-import { useMutation, UseMutationOptions, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    useMutation,
+    UseMutationOptions,
+    useMutationState,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { CategoriesWithChildren, CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
 import { formatToCategoryTree, formatTreeToSelectOptions } from './utils';
 import { SelectOption } from '@/components/select-field';
@@ -10,6 +16,7 @@ export const categoriesKeys = {
     list: () => [...categoriesKeys.lists()] as const, // TODO: leaveing that follow the same pattern
     create: () => [...categoriesKeys.all, 'create'] as const,
     update: () => [...categoriesKeys.all, 'update'] as const,
+    delete: () => [...categoriesKeys.all, 'delete'] as const,
 };
 
 const getCategories = async () => {
@@ -87,7 +94,7 @@ export const useCreateCategory = (
         mutationKey: categoriesKeys.create(),
         mutationFn: createCategory,
         onSettled: () => {
-            queryClient.invalidateQueries({
+            return queryClient.invalidateQueries({
                 queryKey: categoriesKeys.list(),
             });
         },
@@ -103,11 +110,12 @@ export const useDeleteCategory = () => {
 
     return useMutation<unknown, Error, string>({
         mutationFn: deleteCategory,
+        mutationKey: categoriesKeys.delete(),
         onError: (error) => {
             console.error('--> delete category error', error);
         },
         onSettled: () => {
-            queryClient.invalidateQueries({
+            return queryClient.invalidateQueries({
                 queryKey: categoriesKeys.list(),
             });
         },
