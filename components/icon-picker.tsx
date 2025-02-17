@@ -1,35 +1,8 @@
-import { Carrot, House, ShoppingCart, Car, PiggyBank, CircleHelp } from '@tamagui/lucide-icons';
 import { useFormContext, FieldValues, ControllerProps, Controller } from 'react-hook-form';
 import { Pressable } from 'react-native';
 import { View, YStack, XStack } from 'tamagui';
 import { Label } from '@/components/label';
-
-const icons = [
-    {
-        name: 'carrot',
-        icon: (color: any) => <Carrot color={color} />,
-    },
-    {
-        name: 'house',
-        icon: (color: any) => <House color={color} />,
-    },
-    {
-        name: 'shopping-cart',
-        icon: (color: any) => <ShoppingCart color={color} />,
-    },
-    {
-        name: 'car',
-        icon: (color: any) => <Car color={color} />,
-    },
-    {
-        name: 'piggy-bank',
-        icon: (color: any) => <PiggyBank color={color} />,
-    },
-    {
-        name: 'help',
-        icon: (color: any) => <CircleHelp color={color} />,
-    },
-];
+import { icons } from '@/consts/icons';
 
 type IconPickerProps<T extends FieldValues> = {
     label?: string;

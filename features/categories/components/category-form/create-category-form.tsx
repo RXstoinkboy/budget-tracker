@@ -6,26 +6,11 @@ import { Button } from '@/components/button';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
 import { Form, Paragraph, Spinner, YStack } from 'tamagui';
-import { z } from 'zod';
-import { useCreateCategory } from '../api/query';
-import { CategoryDto } from '../api/types';
+import { useCreateCategory } from '../../api/query';
+import { CategoryFormSchema } from './schema';
+import { CategoryFormProps, CategoryFormType } from './types';
 
-const CategoryFormSchema = z.object({
-    name: z.string().min(1),
-    icon: z.string(),
-    icon_color: z.string(),
-    type: z.string(),
-});
-
-type CategoryFormType = z.infer<typeof CategoryFormSchema>;
-
-type CreateCategoryFormProps = {
-    onSubmit: () => void;
-    autoFocus?: boolean;
-    parentCategory?: CategoryDto | null;
-};
-
-export const CreateCategoryForm = (props: CreateCategoryFormProps) => {
+export const CreateCategoryForm = (props: CategoryFormProps) => {
     const createCategory = useCreateCategory({
         onMutate: () => {
             props.onSubmit();
@@ -35,9 +20,9 @@ export const CreateCategoryForm = (props: CreateCategoryFormProps) => {
     const methods = useForm<CategoryFormType>({
         defaultValues: {
             name: '',
-            icon: props.parentCategory ? props.parentCategory.icon : 'help',
-            icon_color: props.parentCategory ? props.parentCategory.icon_color : '#a63535',
-            type: props.parentCategory ? props.parentCategory.type : 'expense',
+            icon: 'help',
+            icon_color: '#a63535',
+            type: 'expense',
         },
         resolver: zodResolver(CategoryFormSchema),
     });
@@ -56,11 +41,7 @@ export const CreateCategoryForm = (props: CreateCategoryFormProps) => {
 
     return (
         <YStack gap="$2" p="$4">
-            {props.parentCategory ? (
-                <Paragraph>Create new subcategory for {props.parentCategory.name}</Paragraph>
-            ) : (
-                <Paragraph>Create new category</Paragraph>
-            )}
+            <Paragraph>Create new category</Paragraph>
 
             <FormProvider {...methods}>
                 <Form flex={1} gap="$2" onSubmit={onSubmit}>
@@ -70,23 +51,19 @@ export const CreateCategoryForm = (props: CreateCategoryFormProps) => {
                         autoFocus={props.autoFocus}
                         controller={{ name: 'name', rules: { required: true } }}
                     />
-                    {!props.parentCategory ? (
-                        <>
-                            <IconPicker
-                                color={currentColor}
-                                label="Icon"
-                                controller={{ name: 'icon', rules: { required: true } }}
-                            />
-                            <ColorPicker label="Icon color" controller={{ name: 'icon_color' }} />
-                            <RadioGroup
-                                options={[
-                                    { label: 'Expense', value: 'expense' },
-                                    { label: 'Income', value: 'income' },
-                                ]}
-                                controller={{ name: 'type' }}
-                            />
-                        </>
-                    ) : null}
+                    <IconPicker
+                        color={currentColor}
+                        label="Icon"
+                        controller={{ name: 'icon', rules: { required: true } }}
+                    />
+                    <ColorPicker label="Icon color" controller={{ name: 'icon_color' }} />
+                    <RadioGroup
+                        options={[
+                            { label: 'Expense', value: 'expense' },
+                            { label: 'Income', value: 'income' },
+                        ]}
+                        controller={{ name: 'type' }}
+                    />
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
                         <Button icon={createCategory.isPending ? <Spinner /> : undefined}>
                             Create

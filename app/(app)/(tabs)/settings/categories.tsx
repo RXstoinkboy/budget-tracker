@@ -8,8 +8,9 @@ import { Sheet } from '@/components/sheet';
 import { useMutationState } from '@tanstack/react-query';
 import { CategoryChild } from '@/features/categories/components/category-child';
 import { CategoryParent } from '@/features/categories/components/category-parent';
-import { CreateCategoryForm } from '@/features/categories/components/create-category-form';
+import { CreateCategoryForm } from '@/features/categories/components/category-form/create-category-form';
 import { DeleteConfirmationSheet } from '@/features/categories/components/delete-confirmation-sheet';
+import { CreateSubcategoryForm } from '@/features/categories/components/category-form/create-subcategory-form';
 
 export default function Categories() {
     const categories = useGetCategories();
@@ -129,11 +130,15 @@ export default function Categories() {
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>
-                <CreateCategoryForm
-                    autoFocus={open}
-                    onSubmit={closeSheet}
-                    parentCategory={parentCategory}
-                />
+                {parentCategory ? (
+                    <CreateSubcategoryForm
+                        autoFocus={open}
+                        onSubmit={closeSheet}
+                        parentCategory={parentCategory}
+                    />
+                ) : (
+                    <CreateCategoryForm autoFocus={open} onSubmit={closeSheet} />
+                )}
             </Sheet>
             <DeleteConfirmationSheet
                 open={deleteConfirmationOpen}
