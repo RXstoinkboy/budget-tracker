@@ -40,7 +40,7 @@ const SelectDropdown = <T extends FieldValues>({
                         <Select.Value placeholder={placeholder} />
                     </Select.Trigger>
                     <Adapt when={media.sm} platform="touch">
-                        <Sheet modal dismissOnSnapToBottom native animation="medium">
+                        <Sheet modal dismissOnSnapToBottom native animation="quick">
                             {/* TODO: make it so it doesn't cover whole screen (?) */}
                             {/* TODO:  pass ....props somewhere*/}
                             {/* TODO: check if it works correctly with react hook form */}

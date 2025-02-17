@@ -4,7 +4,7 @@ import { useCreateTransaction } from '@/features/transactions/api/query';
 import { DatePicker } from '@/components/date-picker';
 import { router } from 'expo-router';
 import { InputField } from '@/components/input-field';
-import { SelectField, SelectOption } from '@/components/select-field';
+import { SelectField } from '@/components/select-field';
 import { TextAreaField } from '@/components/text-area-field';
 import { RadioGroup, RadioGroupOption } from '@/components/radio-group';
 import { DateTime } from 'luxon';

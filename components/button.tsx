@@ -15,5 +15,11 @@ export const Button = styled(TamaguiButton, {
                 color: '$color4',
             },
         },
+        danger: {
+            true: {
+                bg: '$red10',
+                color: '$red12',
+            },
+        },
     } as const,
 });
