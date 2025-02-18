@@ -31,7 +31,7 @@ export const CreateCategoryForm = (props: CategoryFormProps) => {
     const onSubmit = methods.handleSubmit((data: CategoryFormType) => {
         createCategory.mutate({
             ...data,
-            parent_id: props.parentCategory ? props.parentCategory.id : null,
+            parent_id: null,
         });
     });
 

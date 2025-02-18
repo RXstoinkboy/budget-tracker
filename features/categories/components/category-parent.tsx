@@ -1,13 +1,16 @@
 import { CirclePlus, Trash } from '@tamagui/lucide-icons';
 import { ListItem, XStack, Text } from 'tamagui';
-import { CategoryDto } from '../api/types';
+import { CategoryDto, UpdateCategoryDto } from '../api/types';
 import { icons } from '@/consts/icons';
+import { useMutationState } from '@tanstack/react-query';
+import { categoriesKeys } from '../api/query';
 
 type CategoryParentProps = {
     category: CategoryDto;
     onDelete?: () => void;
     onCreateSubcategory?: () => void;
     isGhost?: boolean;
+    onEdit?: () => void;
 };
 
 export const CategoryParent = ({
@@ -15,19 +18,42 @@ export const CategoryParent = ({
     onDelete,
     onCreateSubcategory,
     isGhost,
+    onEdit,
 }: CategoryParentProps) => {
+    const updatedCategories = useMutationState<UpdateCategoryDto>({
+        filters: { mutationKey: categoriesKeys.update(), status: 'pending' },
+        select: (mutation) => mutation.state.variables as UpdateCategoryDto,
+    });
+
+    const updatedData = updatedCategories.find((c) => c.id === category.id);
+    const isLoading = Boolean(updatedData || isGhost);
+    const data = updatedData || category;
+
     return (
         <ListItem
-            icon={icons.find((icon) => icon.name === category.icon)?.icon(category.icon_color)}
             borderColor="$color4"
+            hoverStyle={{
+                bg: '$backgroundHover',
+                cursor: 'pointer',
+            }}
             borderBottomWidth={1}
-            opacity={isGhost ? 0.6 : 1}>
-            <XStack flex={1} items="center" justify={'space-between'}>
-                <Text>{category.name}</Text>
+            opacity={isLoading ? 0.6 : 1}
+            disabled={isLoading}
+            iconAfter={
                 <XStack gap="$4">
-                    <CirclePlus onPress={onCreateSubcategory} />
-                    <Trash onPress={onDelete} />
+                    <CirclePlus
+                        hoverStyle={{
+                            bg: '$colorHover',
+                        }}
+                        disabled={isLoading}
+                        onPress={onCreateSubcategory}
+                    />
+                    <Trash disabled={isLoading} onPress={onDelete} />
                 </XStack>
+            }>
+            <XStack onPress={onEdit} flex={1} items="center" gap="$3">
+                {icons.find((icon) => icon.name === data.icon)?.icon(data.icon_color)}
+                <Text>{data.name}</Text>
             </XStack>
         </ListItem>
     );

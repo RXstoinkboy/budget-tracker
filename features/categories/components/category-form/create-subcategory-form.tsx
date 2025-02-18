@@ -17,9 +17,9 @@ export const CreateSubcategoryForm = (props: SubcategoryFormProps) => {
     const methods = useForm<CategoryFormType>({
         defaultValues: {
             name: '',
-            icon: props.parentCategory.icon,
-            icon_color: props.parentCategory.icon_color,
-            type: props.parentCategory.type,
+            icon: props.parentCategory?.icon,
+            icon_color: props.parentCategory?.icon_color,
+            type: props.parentCategory?.type,
         },
         resolver: zodResolver(CategoryFormSchema),
     });
@@ -27,7 +27,7 @@ export const CreateSubcategoryForm = (props: SubcategoryFormProps) => {
     const onSubmit = methods.handleSubmit((data: CategoryFormType) => {
         createCategory.mutate({
             ...data,
-            parent_id: props.parentCategory.id,
+            parent_id: props.parentCategory?.id ? props.parentCategory?.id : null,
         });
     });
 
@@ -37,7 +37,7 @@ export const CreateSubcategoryForm = (props: SubcategoryFormProps) => {
 
     return (
         <YStack gap="$2" p="$4">
-            <Paragraph>Create new subcategory for {props.parentCategory.name}</Paragraph>
+            <Paragraph>Create new subcategory for {props.parentCategory?.name}</Paragraph>
 
             <FormProvider {...methods}>
                 <Form flex={1} gap="$2" onSubmit={onSubmit}>

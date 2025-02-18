@@ -9,6 +9,7 @@ import { useMutationState } from '@tanstack/react-query';
 import { CategoryChild } from '@/features/categories/components/category-child';
 import { CategoryParent } from '@/features/categories/components/category-parent';
 import { CreateCategoryForm } from '@/features/categories/components/category-form/create-category-form';
+import { EditCategoryForm } from '@/features/categories/components/category-form/edit-category-form';
 import { DeleteConfirmationSheet } from '@/features/categories/components/delete-confirmation-sheet';
 import { CreateSubcategoryForm } from '@/features/categories/components/category-form/create-subcategory-form';
 
@@ -17,6 +18,7 @@ export default function Categories() {
     const categoriesTree = categories.data?.tree || [];
     const [open, setOpen] = useState(false);
     const [parentCategory, setParentCategory] = useState<CategoryDto | null>(null);
+    const [categoryToEdit, setCategoryToEdit] = useState<CategoryDto | null>(null);
     const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<CategoryDto | null>(null);
 
@@ -28,13 +30,21 @@ export default function Categories() {
         setOpen(false);
     };
     const openCreateSubcategorySheet = (parentId: CategoryDto) => {
+        setCategoryToEdit(null);
         setParentCategory(parentId);
         setOpen(true);
     };
-
     const openDeleteConfirmationSheet = (category: CategoryDto) => {
         setCategoryToDelete(category);
         setDeleteConfirmationOpen(true);
+    };
+    const openEditCategorySheet = (
+        category: CategoryDto,
+        parentCategory: CategoryDto | null = null,
+    ) => {
+        setCategoryToEdit(category);
+        setParentCategory(parentCategory);
+        setOpen(true);
     };
 
     const newCategories = useMutationState<CreateCategoryDto>({
@@ -79,6 +89,7 @@ export default function Categories() {
                                         onCreateSubcategory={() =>
                                             openCreateSubcategorySheet(category)
                                         }
+                                        onEdit={() => openEditCategorySheet(category)}
                                     />
                                     <YStack>
                                         {children && (
@@ -112,6 +123,12 @@ export default function Categories() {
                                                                         child,
                                                                     )
                                                                 }
+                                                                onEdit={() =>
+                                                                    openEditCategorySheet(
+                                                                        child,
+                                                                        category,
+                                                                    )
+                                                                }
                                                             />
                                                         </YGroup.Item>
                                                     );
@@ -130,13 +147,29 @@ export default function Categories() {
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>
-                {parentCategory ? (
+                {parentCategory && !categoryToEdit && (
                     <CreateSubcategoryForm
                         autoFocus={open}
                         onSubmit={closeSheet}
                         parentCategory={parentCategory}
                     />
-                ) : (
+                )}
+                {categoryToEdit && parentCategory && (
+                    <EditCategoryForm
+                        autoFocus={open}
+                        onSubmit={closeSheet}
+                        category={categoryToEdit}
+                        isSubcategory
+                    />
+                )}
+                {categoryToEdit && !parentCategory && (
+                    <EditCategoryForm
+                        autoFocus={open}
+                        onSubmit={closeSheet}
+                        category={categoryToEdit}
+                    />
+                )}
+                {!parentCategory && !categoryToEdit && (
                     <CreateCategoryForm autoFocus={open} onSubmit={closeSheet} />
                 )}
             </Sheet>

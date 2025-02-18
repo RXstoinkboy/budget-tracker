@@ -12,3 +12,8 @@ export type CategoryFormProps = {
 export type SubcategoryFormProps = CategoryFormProps & {
     parentCategory: CategoryDto | null;
 };
+
+export type EditCategoryFormProps = CategoryFormProps & {
+    category: CategoryDto;
+    isSubcategory?: boolean;
+};

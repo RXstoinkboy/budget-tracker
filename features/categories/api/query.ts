@@ -1,11 +1,5 @@
 import { supabase } from '@/utils/supabase';
-import {
-    useMutation,
-    UseMutationOptions,
-    useMutationState,
-    useQuery,
-    useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, UseMutationOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CategoriesWithChildren, CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
 import { formatToCategoryTree, formatTreeToSelectOptions } from './utils';
 import { SelectOption } from '@/components/select-field';
@@ -14,6 +8,8 @@ export const categoriesKeys = {
     all: ['categories'] as const,
     lists: () => [...categoriesKeys.all, 'list'] as const,
     list: () => [...categoriesKeys.lists()] as const, // TODO: leaveing that follow the same pattern
+    details: () => [...categoriesKeys.all, 'detail'] as const,
+    detail: (id: string) => [...categoriesKeys.details(), id] as const,
     create: () => [...categoriesKeys.all, 'create'] as const,
     update: () => [...categoriesKeys.all, 'update'] as const,
     delete: () => [...categoriesKeys.all, 'delete'] as const,
@@ -100,6 +96,31 @@ export const useCreateCategory = (
         },
         onError: (error) => {
             console.error('--> create category error', error);
+        },
+        ...options,
+    });
+};
+
+export const useUpdateCategory = (
+    options: UseMutationOptions<unknown, Error, UpdateCategoryDto>,
+) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: updateCategory,
+        mutationKey: categoriesKeys.update(),
+        onError: (error) => {
+            console.error('--> update category error', error);
+        },
+        onSettled: (data, error, variables) => {
+            return Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: categoriesKeys.list(),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: categoriesKeys.detail(variables.id),
+                }),
+            ]);
         },
         ...options,
     });
