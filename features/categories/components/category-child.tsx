@@ -6,18 +6,29 @@ import { categoriesKeys } from '../api/query';
 
 type CategoryChilProps = {
     category: CategoryDto;
+    parentId: string;
     onDelete?: () => void;
     onEdit?: () => void;
+    onMove?: () => void;
     isGhost?: boolean;
 };
 
-export const CategoryChild = ({ isGhost, category, onDelete, onEdit }: CategoryChilProps) => {
+export const CategoryChild = ({
+    isGhost,
+    category,
+    parentId,
+    onDelete,
+    onEdit,
+    onMove,
+}: CategoryChilProps) => {
     const updatedCategories = useMutationState<UpdateCategoryDto>({
         filters: { mutationKey: categoriesKeys.update(), status: 'pending' },
         select: (mutation) => mutation.state.variables as UpdateCategoryDto,
     });
 
-    const updatedData = updatedCategories.find((c) => c.id === category.id);
+    const updatedData = updatedCategories.find(
+        (c) => c.id === category.id && parentId === c.parent_id,
+    );
     const isLoading = Boolean(updatedData || isGhost);
     const data = updatedData || category;
 
@@ -31,7 +42,7 @@ export const CategoryChild = ({ isGhost, category, onDelete, onEdit }: CategoryC
             disabled={isLoading}
             iconAfter={
                 <XStack gap="$4">
-                    <FolderOutput />
+                    <FolderOutput disabled={isLoading} onPress={onMove} />
                     <Trash disabled={isLoading} onPress={onDelete} />
                 </XStack>
             }>

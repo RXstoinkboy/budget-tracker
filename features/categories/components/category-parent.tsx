@@ -41,13 +41,7 @@ export const CategoryParent = ({
             disabled={isLoading}
             iconAfter={
                 <XStack gap="$4">
-                    <CirclePlus
-                        hoverStyle={{
-                            bg: '$colorHover',
-                        }}
-                        disabled={isLoading}
-                        onPress={onCreateSubcategory}
-                    />
+                    <CirclePlus disabled={isLoading} onPress={onCreateSubcategory} />
                     <Trash disabled={isLoading} onPress={onDelete} />
                 </XStack>
             }>

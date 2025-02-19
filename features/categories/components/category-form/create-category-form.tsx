@@ -9,6 +9,7 @@ import { Form, Paragraph, Spinner, YStack } from 'tamagui';
 import { useCreateCategory } from '../../api/query';
 import { CategoryFormSchema } from './schema';
 import { CategoryFormProps, CategoryFormType } from './types';
+import { useEffect } from 'react';
 
 export const CreateCategoryForm = (props: CategoryFormProps) => {
     const createCategory = useCreateCategory({
@@ -34,6 +35,10 @@ export const CreateCategoryForm = (props: CategoryFormProps) => {
             parent_id: null,
         });
     });
+
+    useEffect(() => {
+        methods.reset();
+    }, [methods]);
 
     if (!props.autoFocus) {
         return null;

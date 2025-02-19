@@ -18,6 +18,11 @@ export const formatTreeToSelectOptions = (tree: CategoriesWithChildren) => {
         return {
             name: category.name,
             value: category.id,
+            meta: {
+                isParent: category.parent_id === null,
+                icon: category.icon,
+                color: category.icon_color,
+            },
         };
     };
     return tree.reduce((acc, category) => {

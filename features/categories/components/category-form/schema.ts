@@ -6,3 +6,7 @@ export const CategoryFormSchema = z.object({
     icon_color: z.string(),
     type: z.string(),
 });
+
+export const MoveCategoryFormSchema = z.object({
+    parent_id: z.string(),
+});

@@ -75,7 +75,6 @@ export const EditCategoryForm = (props: EditCategoryFormProps) => {
                             />
                         </>
                     )}
-
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
                         <Button icon={updateCategory.isPending ? <Spinner /> : undefined}>
                             Save

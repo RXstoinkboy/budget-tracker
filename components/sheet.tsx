@@ -19,14 +19,14 @@ export const Sheet = ({ open, onOpenChange, children, ...props }: SheetProps) =>
             zIndex={100_000}
             animation="quick">
             <TamaguiSheet.Overlay
-                animation="lazy"
-                bg="$shadow6"
+                animation="quick"
+                bg="$shadow2"
                 enterStyle={{ opacity: 0 }}
                 exitStyle={{ opacity: 0 }}
             />
 
-            <TamaguiSheet.Handle />
-            <TamaguiSheet.Frame>{children}</TamaguiSheet.Frame>
+            <TamaguiSheet.Handle bg={'$color3'} />
+            <TamaguiSheet.Frame bg={'$color3'}>{children}</TamaguiSheet.Frame>
         </TamaguiSheet>
     );
 };

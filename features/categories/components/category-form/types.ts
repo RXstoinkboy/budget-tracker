@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { CategoryDto } from '@/features/categories/api/types';
-import { CategoryFormSchema } from './schema';
+import { CategoryFormSchema, MoveCategoryFormSchema } from './schema';
 
 export type CategoryFormType = z.infer<typeof CategoryFormSchema>;
+export type MoveCategoryFormType = z.infer<typeof MoveCategoryFormSchema>;
 
 export type CategoryFormProps = {
     onSubmit: () => void;
@@ -16,4 +17,5 @@ export type SubcategoryFormProps = CategoryFormProps & {
 export type EditCategoryFormProps = CategoryFormProps & {
     category: CategoryDto;
     isSubcategory?: boolean;
+    isMove?: boolean;
 };
