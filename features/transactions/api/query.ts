@@ -20,6 +20,7 @@ export const transactionsKeys = {
     list: (filters: TransactionFilters) => [...transactionsKeys.lists(), { filters }] as const,
     create: () => [...transactionsKeys.all, 'create'] as const,
     updates: () => [...transactionsKeys.all, 'update'] as const,
+    delete: () => [...transactionsKeys.all, 'delete'] as const,
     details: () => [...transactionsKeys.all, 'detail'] as const,
     detail: (id: string) => [...transactionsKeys.details(), id] as const,
 };
@@ -40,6 +41,14 @@ const createTransaction = async (data: CreateTransactionDto) => {
 
 const updateTransaction = async ({ id, ...data }: UpdateTransactionDto) => {
     const { error } = await supabase.from('transactions').update(data).eq('id', id);
+
+    if (error) {
+        throw error;
+    }
+};
+
+const deleteTransaction = async (id: TransactionDto['id']) => {
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
 
     if (error) {
         throw error;
@@ -108,6 +117,23 @@ export const useUpdateTransaction = (
         },
         mutationKey: transactionsKeys.updates(),
         ...options,
+    });
+};
+
+export const useDeleteTransaction = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation<unknown, Error, string>({
+        mutationFn: deleteTransaction,
+        onError: (error) => {
+            console.error('--> delete transaction error', error);
+        },
+        onSettled: () => {
+            return queryClient.invalidateQueries({
+                queryKey: transactionsKeys.lists(),
+            });
+        },
+        mutationKey: transactionsKeys.delete(),
     });
 };
 
