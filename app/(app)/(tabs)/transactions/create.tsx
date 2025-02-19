@@ -30,16 +30,18 @@ const TransactionFormSchema = z.object({
 type TransactionFormType = z.infer<typeof TransactionFormSchema>;
 
 export default function CreateTransaction() {
+    const { data } = useGetCategories();
+    const categoriesOptions = data?.selectOptions || [];
+
     const methods = useForm<TransactionFormType>({
         defaultValues: {
             description: null,
             expense: 'true',
-            category_id: null,
+            category_id: categoriesOptions[0]?.value,
             transaction_date: DateTime.now(),
         },
         resolver: zodResolver(TransactionFormSchema),
     });
-    const categories = useGetCategories();
 
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
 
@@ -80,7 +82,7 @@ export default function CreateTransaction() {
                         <DatePicker label="Date" controller={{ name: 'transaction_date' }} />
                         <SelectField
                             label="Category"
-                            options={categories.data?.selectOptions ?? []}
+                            options={categoriesOptions}
                             placeholder="Select category"
                             controller={{
                                 name: 'category_id',
