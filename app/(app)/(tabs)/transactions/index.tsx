@@ -8,17 +8,24 @@ import {
     TransactionDto,
     UpdateTransactionDto,
 } from '@/features/transactions/api/types';
-import { Pressable } from 'react-native';
 
-const TransactionItem = (props: CreateTransactionDto) => {
+type TransactionItemProps = {
+    isGhost?: boolean;
+    transaction: TransactionDto;
+    onPress?: () => void;
+};
+
+const TransactionItem = ({ isGhost, transaction, onPress }: TransactionItemProps) => {
+    const isLoading = Boolean(isGhost);
     return (
-        <ListItem>
-            <XStack flex={1} justify="space-between">
-                <Text>{props.name}</Text>
+        // TODO: create new ListItem component to better handle all these 'disabled' states
+        <ListItem opacity={isLoading ? 0.6 : 1} disabled={isLoading}>
+            <XStack onPress={onPress} flex={1} justify="space-between">
+                <Text>{transaction.name}</Text>
                 <Text
                     color={
-                        props.expense ? '$red10' : '$green10'
-                    }>{`${props.expense ? '-' : '+'} ${props.amount}`}</Text>
+                        transaction.expense ? '$red10' : '$green10'
+                    }>{`${transaction.expense ? '-' : '+'} ${transaction.amount}`}</Text>
             </XStack>
         </ListItem>
     );
@@ -56,14 +63,22 @@ export default function Tab() {
                 <YStack gap="$4">
                     {transactions.data?.map((dayTransactions) => (
                         <Card key={dayTransactions.transaction_date}>
-                            <Card.Header>
+                            <Card.Header borderBottomWidth={1} borderColor="$color4">
                                 <Text>{dayTransactions.transaction_date}</Text>
                             </Card.Header>
+                            {/* render newly added transactions for a psecific day */}
                             {newTransactions.map(
                                 (transaction, index) =>
                                     dayTransactions.transaction_date ===
                                         transaction.transaction_date && (
-                                        <TransactionItem key={index} {...transaction} />
+                                        <TransactionItem
+                                            isGhost
+                                            key={index}
+                                            transaction={{
+                                                ...transaction,
+                                                id: new Date().toString(),
+                                            }}
+                                        />
                                     ),
                             )}
                             {dayTransactions.transactions.map((transaction) => {
@@ -72,19 +87,20 @@ export default function Tab() {
                                 );
                                 if (updatedTransaction) {
                                     return (
-                                        <Pressable
+                                        <TransactionItem
+                                            isGhost
                                             key={transaction.id}
-                                            onPress={() => navigateToEdit(updatedTransaction.id)}>
-                                            <TransactionItem {...updatedTransaction} />
-                                        </Pressable>
+                                            onPress={() => navigateToEdit(updatedTransaction.id)}
+                                            transaction={updatedTransaction}
+                                        />
                                     );
                                 }
                                 return (
-                                    <Pressable
+                                    <TransactionItem
                                         key={transaction.id}
-                                        onPress={() => navigateToEdit(transaction.id)}>
-                                        <TransactionItem {...transaction} />
-                                    </Pressable>
+                                        transaction={transaction}
+                                        onPress={() => navigateToEdit(transaction.id)}
+                                    />
                                 );
                             })}
                         </Card>
