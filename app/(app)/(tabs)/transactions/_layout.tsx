@@ -16,6 +16,13 @@ export default function TransactionsLayout() {
                     headerTitle: 'Add transaction',
                 }}
             />
+            <Stack.Screen
+                name="[id]"
+                options={{
+                    presentation: 'modal',
+                    headerTitle: 'Edit transaction',
+                }}
+            />
         </Stack>
     );
 }
