@@ -24,15 +24,18 @@ export const MoveCategoryForm = (props: EditCategoryFormProps) => {
     const categoriesOptions = (categories.data?.selectOptions ?? []).filter((cat) => {
         return cat.value !== props.category.parent_id && cat.meta?.isParent;
     });
+    const currentValue = methods.watch('parent_id');
 
     const onSubmit = methods.handleSubmit((data: MoveCategoryFormType) => {
+        const newParent = categories.data?.list.find((cat) => cat.id === currentValue);
+
         updateCategory.mutate({
             ...data,
             id: props.category.id,
             name: props.category.name,
-            icon: props.category.icon,
-            icon_color: props.category.icon_color,
-            type: props.category.type,
+            icon: newParent?.icon ?? props.category.icon,
+            icon_color: newParent?.icon_color ?? props.category.icon_color,
+            type: newParent?.type ?? props.category.type,
         });
     });
 
