@@ -41,11 +41,27 @@ const createCategory = async (data: CreateCategoryDto) => {
     };
 };
 
-const updateCategory = async ({ id, ...data }: UpdateCategoryDto) => {
+const updateCategory = async ({ id, options, ...data }: UpdateCategoryDto) => {
+    console.log('data', data);
+    console.log('options', options);
     const { error } = await supabase.from('categories').update(data).eq('id', id);
 
     if (error) {
         throw error;
+    }
+
+    if (options?.updateChildren) {
+        const { error } = await supabase
+            .from('categories')
+            .update({
+                icon: data.icon,
+                icon_color: data.icon_color,
+                type: data.type,
+            })
+            .eq('parent_id', id);
+        if (error) {
+            throw error;
+        }
     }
 };
 

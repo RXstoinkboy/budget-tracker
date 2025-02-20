@@ -13,7 +13,7 @@ export type CreateTransactionDto = Omit<TransactionDto, 'id'>;
 export type UpdateTransactionDto = TransactionDto;
 
 export type TransactionFilters = {
-    order_by_desc?: boolean;
+    period: 'current_month' | 'last_month';
 };
 
 export type TransactionsListResponse = {

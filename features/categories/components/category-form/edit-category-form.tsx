@@ -14,8 +14,8 @@ import { useEffect } from 'react';
 export const EditCategoryForm = (props: EditCategoryFormProps) => {
     const updateCategory = useUpdateCategory({
         onMutate: () => {
-            props.onSubmit();
             methods.reset();
+            props.onSubmit();
         },
     });
     const methods = useForm<CategoryFormType>({
@@ -30,10 +30,18 @@ export const EditCategoryForm = (props: EditCategoryFormProps) => {
     const currentColor = methods.watch('icon_color');
 
     const onSubmit = methods.handleSubmit((data: CategoryFormType) => {
+        const shouldUpdateChildren =
+            props.category.icon !== methods.getValues('icon') ||
+            props.category.icon_color !== methods.getValues('icon_color') ||
+            props.category.type !== methods.getValues('type');
+
         updateCategory.mutate({
             ...data,
             parent_id: props.category.parent_id,
             id: props.category.id,
+            options: {
+                updateChildren: shouldUpdateChildren,
+            },
         });
     });
 

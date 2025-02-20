@@ -13,6 +13,7 @@ import {
     useQueryClient,
     UseQueryOptions,
 } from '@tanstack/react-query';
+import { DateTime } from 'luxon';
 
 export const transactionsKeys = {
     all: ['transactions'] as const,
@@ -24,8 +25,6 @@ export const transactionsKeys = {
     details: () => [...transactionsKeys.all, 'detail'] as const,
     detail: (id: string) => [...transactionsKeys.details(), id] as const,
 };
-
-const DEFAULT_FILTERS = { order_by_desc: true };
 
 const createTransaction = async (data: CreateTransactionDto) => {
     const { data: response, error } = await supabase.from('transactions').insert(data).select('id');
@@ -56,7 +55,15 @@ const deleteTransaction = async (id: TransactionDto['id']) => {
 };
 
 const getTransactions = async (filters: TransactionFilters) => {
-    const { data, error } = await supabase.rpc('get_transactions_grouped_by_date', filters);
+    const startOfMonth = DateTime.now().startOf('month').toISODate();
+
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .filter('transaction_date', 'gte', startOfMonth)
+        .order('transaction_date', {
+            ascending: false,
+        });
 
     if (error) {
         throw error;
@@ -137,10 +144,42 @@ export const useDeleteTransaction = () => {
     });
 };
 
+type GetTransactionsResponse = {
+    raw: TransactionDto[];
+    list: TransactionsListResponse;
+};
+
+const DEFAULT_FILTERS: TransactionFilters = {
+    period: 'current_month',
+};
+
+const formatToList = (data: TransactionDto[]): TransactionsListResponse => {
+    return data.reduce((acc, transaction) => {
+        const date = transaction.transaction_date;
+        const daySlot = acc.find((day) => day.transaction_date === date);
+
+        if (daySlot) {
+            daySlot.transactions.push(transaction);
+            return acc;
+        }
+
+        acc.push({
+            transaction_date: date,
+            transactions: [transaction],
+        });
+
+        return acc;
+    }, [] as TransactionsListResponse);
+};
+
 export const useGetTransactions = (filters: TransactionFilters = DEFAULT_FILTERS) => {
-    return useQuery<TransactionFilters, Error, TransactionsListResponse>({
+    return useQuery<TransactionDto[], Error, GetTransactionsResponse>({
         queryKey: transactionsKeys.list(filters),
         queryFn: () => getTransactions(filters),
+        select: (data) => ({
+            raw: data,
+            list: formatToList(data),
+        }),
     });
 };
 

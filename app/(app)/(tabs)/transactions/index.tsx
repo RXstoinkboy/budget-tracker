@@ -1,11 +1,7 @@
 import { Button } from '@/components/button';
 import { YStack, XStack, ScrollView, ListItem, H6, Text, Card } from 'tamagui';
 import { router } from 'expo-router';
-import {
-    transactionsKeys,
-    useDeleteTransaction,
-    useGetTransactions,
-} from '@/features/transactions/api/query';
+import { transactionsKeys, useGetTransactions } from '@/features/transactions/api/query';
 import { useMutationState } from '@tanstack/react-query';
 import {
     CreateTransactionDto,
@@ -87,14 +83,14 @@ export default function Tab() {
         <>
             <YStack flex={1}>
                 <ScrollView>
-                    {!transactions.data?.length && (
+                    {!transactions.data?.list.length && (
                         // TODO: better empty state page needed
                         <H6>
                             No transactions yet. Add some manually or integrate your bank accout
                         </H6>
                     )}
                     <YStack gap="$4">
-                        {transactions.data?.map((dayTransactions) => (
+                        {transactions.data?.list.map((dayTransactions) => (
                             <Card key={dayTransactions.transaction_date}>
                                 <Card.Header borderBottomWidth={1} borderColor="$color4">
                                     <Text>{dayTransactions.transaction_date}</Text>

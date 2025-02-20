@@ -11,4 +11,8 @@ export type CategoryWithChildren = CategoryDto & { children: CategoryDto[] };
 export type CategoriesWithChildren = CategoryWithChildren[];
 
 export type CreateCategoryDto = Omit<CategoryDto, 'id'>;
-export type UpdateCategoryDto = CategoryDto;
+export type UpdateCategoryDto = CategoryDto & {
+    options?: {
+        updateChildren?: boolean;
+    };
+};
