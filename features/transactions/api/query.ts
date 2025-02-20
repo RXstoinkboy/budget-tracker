@@ -70,41 +70,6 @@ const getTransactions = async (filters: TransactionFilters) => {
     }
 
     return data;
-    // const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    // await delay(3000);
-
-    // return [
-    //     {
-    //         id: '1',
-    //         name: 'Transaction 1',
-    //         amount: 100,
-    //         description: null,
-    //         transaction_date: '2025-02-01',
-    //         receipt_url: null,
-    //         expense: true,
-    //         category_id: null,
-    //     },
-    //     {
-    //         id: '2',
-    //         name: 'Transaction 2',
-    //         amount: 200,
-    //         description: null,
-    //         transaction_date: '2025-02-02',
-    //         receipt_url: null,
-    //         expense: true,
-    //         category_id: null,
-    //     },
-    //     {
-    //         id: '3',
-    //         name: 'Transaction 3',
-    //         amount: 300,
-    //         description: null,
-    //         transaction_date: '2025-02-03',
-    //         receipt_url: null,
-    //         expense: true,
-    //         category_id: null,
-    //     },
-    // ];
 };
 
 const getTransactionDetails = async (id: string) => {
@@ -319,10 +284,17 @@ export const useGetTransactionDetails = (
     id: string,
     options: Omit<UseQueryOptions<TransactionDto, Error, TransactionDto>, 'queryKey'> = {},
 ) => {
-    // TODO: get initial data from the list to make the form more responsive
+    const queryClient = useQueryClient();
+
     return useQuery<TransactionDto, Error, TransactionDto>({
         queryKey: transactionsKeys.detail(id),
         queryFn: () => getTransactionDetails(id),
+        initialData: () => {
+            const transactions = queryClient.getQueryData<TransactionDto[]>(
+                transactionsKeys.list(DEFAULT_FILTERS),
+            );
+            return transactions?.find((transaction) => transaction.id === id);
+        },
         ...options,
     });
 };
