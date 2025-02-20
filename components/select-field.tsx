@@ -1,5 +1,5 @@
 import { FieldValues, useFormContext, ControllerProps, Controller } from 'react-hook-form';
-import { SelectProps, useMedia, Select, Adapt, Sheet, YStack } from 'tamagui';
+import { SelectProps, useMedia, Select, Adapt, Sheet, YStack, XStack } from 'tamagui';
 import { Label } from '@/components/label';
 import { ReactNode } from 'react';
 
@@ -43,7 +43,6 @@ const SelectDropdown = <T extends FieldValues>({
                         <Sheet modal dismissOnSnapToBottom native animation="quick">
                             {/* TODO: make it so it doesn't cover whole screen (?) */}
                             {/* TODO:  pass ....props somewhere*/}
-                            {/* TODO: check if it works correctly with react hook form */}
                             <Sheet.Frame>
                                 <Sheet.ScrollView>
                                     <Adapt.Contents />
@@ -56,8 +55,10 @@ const SelectDropdown = <T extends FieldValues>({
                         <Select.Viewport>
                             {options.map((option, index) => (
                                 <Select.Item index={index} key={option.value} value={option.value}>
-                                    {option.left}
-                                    <Select.ItemText>{option.name}</Select.ItemText>
+                                    <XStack gap="$2" items="center">
+                                        {option.left}
+                                        <Select.ItemText>{option.name}</Select.ItemText>
+                                    </XStack>
                                 </Select.Item>
                             ))}
                         </Select.Viewport>

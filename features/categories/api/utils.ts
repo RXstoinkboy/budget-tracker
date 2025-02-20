@@ -1,5 +1,6 @@
 import { SelectOption } from '@/components/select-field';
 import { CategoriesWithChildren, CategoryDto } from './types';
+import { icons } from '@/consts/icons';
 
 export const formatToCategoryTree = (categories: CategoryDto[]) => {
     return categories.reduce((acc, category) => {
@@ -20,9 +21,8 @@ export const formatTreeToSelectOptions = (tree: CategoriesWithChildren) => {
             value: category.id,
             meta: {
                 isParent: category.parent_id === null,
-                icon: category.icon,
-                color: category.icon_color,
             },
+            left: icons.find((icon) => icon.name === category.icon)?.icon(category.icon_color),
         };
     };
     return tree.reduce((acc, category) => {
