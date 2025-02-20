@@ -24,10 +24,10 @@ export const MoveCategoryForm = (props: EditCategoryFormProps) => {
     const categoriesOptions = (categories.data?.selectOptions ?? []).filter((cat) => {
         return cat.value !== props.category.parent_id && cat.meta?.isParent;
     });
-    const currentValue = methods.watch('parent_id');
 
     const onSubmit = methods.handleSubmit((data: MoveCategoryFormType) => {
-        const newParent = categories.data?.list.find((cat) => cat.id === currentValue);
+        const parentId = methods.getValues('parent_id');
+        const newParent = categories.data?.list.find((cat) => cat.id === parentId);
 
         updateCategory.mutate({
             ...data,

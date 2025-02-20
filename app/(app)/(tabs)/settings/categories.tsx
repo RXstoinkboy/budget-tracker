@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@/components/button';
 import { categoriesKeys, useGetCategories } from '@/features/categories/api/query';
 import { CirclePlus } from '@tamagui/lucide-icons';
@@ -13,51 +12,25 @@ import { EditCategoryForm } from '@/features/categories/components/category-form
 import { DeleteConfirmationSheet } from '@/features/categories/components/delete-confirmation-sheet';
 import { CreateSubcategoryForm } from '@/features/categories/components/category-form/create-subcategory-form';
 import { MoveCategoryForm } from '@/features/categories/components/category-form/move-category-form';
+import {
+    useCreateCategorySheet,
+    useCreateSubcategorySheet,
+    useDeleteCategorySheet,
+    useEditCategorySheet,
+    useEditSubcategorySheet,
+    useMoveCategorySheet,
+} from '@/features/categories/components/category-form/hooks';
 
 export default function Categories() {
     const categories = useGetCategories();
     const categoriesTree = categories.data?.tree || [];
-    const [open, setOpen] = useState(false);
-    const [parentCategory, setParentCategory] = useState<CategoryDto | null>(null);
-    const [categoryToEdit, setCategoryToEdit] = useState<CategoryDto | null>(null);
-    const [categoryToMove, setCategoryToMove] = useState<CategoryDto | null>(null);
-    const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
-    const [categoryToDelete, setCategoryToDelete] = useState<CategoryDto | null>(null);
 
-    // TODO: this sucks - refactor all of these forms and modal opening...
-    // TODO: also, this is a mess - there are so many different states and so many different ways to open them
-    const openSheet = () => {
-        setCategoryToMove(null);
-        setCategoryToEdit(null);
-        setParentCategory(null);
-        setOpen(true);
-    };
-    const closeSheet = () => {
-        setOpen(false);
-    };
-    const openCreateSubcategorySheet = (parentId: CategoryDto) => {
-        setCategoryToEdit(null);
-        setCategoryToMove(null);
-        setParentCategory(parentId);
-        setOpen(true);
-    };
-    const openDeleteConfirmationSheet = (category: CategoryDto) => {
-        setCategoryToDelete(category);
-        setDeleteConfirmationOpen(true);
-    };
-    const openEditCategorySheet = (
-        category: CategoryDto,
-        parentCategory: CategoryDto | null = null,
-    ) => {
-        setCategoryToEdit(category);
-        setParentCategory(parentCategory);
-        setOpen(true);
-    };
-    const openMoveCategorySheet = (category: CategoryDto) => {
-        setCategoryToMove(category);
-        setParentCategory(null);
-        setOpen(true);
-    };
+    const createCategorySheet = useCreateCategorySheet();
+    const createSubcategorySheet = useCreateSubcategorySheet();
+    const deleteCategorySheet = useDeleteCategorySheet();
+    const editCategorySheet = useEditCategorySheet();
+    const editSubcategorySheet = useEditSubcategorySheet();
+    const moveCategorySheet = useMoveCategorySheet();
 
     const newCategories = useMutationState<CreateCategoryDto>({
         filters: { mutationKey: categoriesKeys.create(), status: 'pending' },
@@ -103,11 +76,11 @@ export default function Categories() {
                                 <YStack>
                                     <CategoryParent
                                         category={category}
-                                        onDelete={() => openDeleteConfirmationSheet(category)}
+                                        onDelete={() => deleteCategorySheet.open(category)}
                                         onCreateSubcategory={() =>
-                                            openCreateSubcategorySheet(category)
+                                            createSubcategorySheet.open(category)
                                         }
-                                        onEdit={() => openEditCategorySheet(category)}
+                                        onEdit={() => editCategorySheet.open(category)}
                                     />
                                     <YStack>
                                         {children && (
@@ -153,18 +126,16 @@ export default function Categories() {
                                                                 parentId={category.id}
                                                                 category={child}
                                                                 onDelete={() =>
-                                                                    openDeleteConfirmationSheet(
-                                                                        child,
-                                                                    )
+                                                                    deleteCategorySheet.open(child)
                                                                 }
                                                                 onEdit={() =>
-                                                                    openEditCategorySheet(
+                                                                    editSubcategorySheet.open(
                                                                         child,
                                                                         category,
                                                                     )
                                                                 }
                                                                 onMove={() =>
-                                                                    openMoveCategorySheet(child)
+                                                                    moveCategorySheet.open(child)
                                                                 }
                                                             />
                                                         </YGroup.Item>
@@ -179,48 +150,60 @@ export default function Categories() {
                     })}
                 </YGroup>
             </ScrollView>
-            <Button icon={<CirclePlus />} onPress={openSheet}>
+            <Button icon={<CirclePlus />} onPress={createCategorySheet.open}>
                 Add category
             </Button>
 
-            <Sheet open={open} onOpenChange={setOpen}>
-                {parentCategory && !categoryToEdit && (
-                    <CreateSubcategoryForm
-                        autoFocus={open}
-                        onSubmit={closeSheet}
-                        parentCategory={parentCategory}
+            {/* TODO: this is already far better, but can also be moved to separate components */}
+            <Sheet open={editCategorySheet.isOpen} onOpenChange={editCategorySheet.setIsOpen}>
+                {editCategorySheet.category && (
+                    <EditCategoryForm
+                        autoFocus={editCategorySheet.isOpen}
+                        onSubmit={editCategorySheet.close}
+                        category={editCategorySheet.category}
                     />
                 )}
-                {categoryToEdit && parentCategory && (
+            </Sheet>
+            <Sheet open={moveCategorySheet.isOpen} onOpenChange={moveCategorySheet.setIsOpen}>
+                {moveCategorySheet.category && (
+                    <MoveCategoryForm
+                        autoFocus={moveCategorySheet.isOpen}
+                        onSubmit={moveCategorySheet.close}
+                        category={moveCategorySheet.category}
+                    />
+                )}
+            </Sheet>
+            <Sheet open={createCategorySheet.isOpen} onOpenChange={createCategorySheet.setIsOpen}>
+                <CreateCategoryForm
+                    autoFocus={createCategorySheet.isOpen}
+                    onSubmit={createCategorySheet.close}
+                />
+            </Sheet>
+            <Sheet
+                open={createSubcategorySheet.isOpen}
+                onOpenChange={createSubcategorySheet.setIsOpen}>
+                {createSubcategorySheet.parentCategory && (
+                    <CreateSubcategoryForm
+                        autoFocus={createSubcategorySheet.isOpen}
+                        onSubmit={createSubcategorySheet.close}
+                        parentCategory={createSubcategorySheet.parentCategory}
+                    />
+                )}
+            </Sheet>
+            <Sheet open={editSubcategorySheet.isOpen} onOpenChange={editSubcategorySheet.setIsOpen}>
+                {editSubcategorySheet.category && (
                     <EditCategoryForm
-                        autoFocus={open}
-                        onSubmit={closeSheet}
-                        category={categoryToEdit}
+                        autoFocus={editSubcategorySheet.isOpen}
+                        onSubmit={editSubcategorySheet.close}
+                        category={editSubcategorySheet.category}
                         isSubcategory
                     />
                 )}
-                {!categoryToMove && categoryToEdit && !parentCategory && (
-                    <EditCategoryForm
-                        autoFocus={open}
-                        onSubmit={closeSheet}
-                        category={categoryToEdit}
-                    />
-                )}
-                {categoryToMove && !parentCategory && (
-                    <MoveCategoryForm
-                        autoFocus={open}
-                        onSubmit={closeSheet}
-                        category={categoryToMove}
-                    />
-                )}
-                {!parentCategory && !categoryToEdit && !categoryToMove && (
-                    <CreateCategoryForm autoFocus={open} onSubmit={closeSheet} />
-                )}
             </Sheet>
             <DeleteConfirmationSheet
-                open={deleteConfirmationOpen}
-                category={categoryToDelete}
-                onOpenChange={setDeleteConfirmationOpen}
+                open={deleteCategorySheet.isOpen}
+                category={deleteCategorySheet.category}
+                onOpenChange={deleteCategorySheet.setIsOpen}
             />
         </YStack>
     );
