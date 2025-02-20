@@ -70,6 +70,41 @@ const getTransactions = async (filters: TransactionFilters) => {
     }
 
     return data;
+    // const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    // await delay(3000);
+
+    // return [
+    //     {
+    //         id: '1',
+    //         name: 'Transaction 1',
+    //         amount: 100,
+    //         description: null,
+    //         transaction_date: '2025-02-01',
+    //         receipt_url: null,
+    //         expense: true,
+    //         category_id: null,
+    //     },
+    //     {
+    //         id: '2',
+    //         name: 'Transaction 2',
+    //         amount: 200,
+    //         description: null,
+    //         transaction_date: '2025-02-02',
+    //         receipt_url: null,
+    //         expense: true,
+    //         category_id: null,
+    //     },
+    //     {
+    //         id: '3',
+    //         name: 'Transaction 3',
+    //         amount: 300,
+    //         description: null,
+    //         transaction_date: '2025-02-03',
+    //         receipt_url: null,
+    //         expense: true,
+    //         category_id: null,
+    //     },
+    // ];
 };
 
 const getTransactionDetails = async (id: string) => {
@@ -82,15 +117,53 @@ const getTransactionDetails = async (id: string) => {
     return data[0];
 };
 
-export const useCreateTransaction = (
-    options: UseMutationOptions<unknown, Error, CreateTransactionDto>,
-) => {
+export const useCreateTransaction = ({
+    onMutate,
+    onError,
+    ...options
+}: UseMutationOptions<unknown, Error, CreateTransactionDto>) => {
     const queryClient = useQueryClient();
 
     return useMutation({
+        // TODO: use dynamic filters here later on instead of hard coced default values
         mutationFn: createTransaction,
-        onError: (error) => {
-            console.error('--> create transaction error', error);
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries({
+                queryKey: transactionsKeys.list(DEFAULT_FILTERS),
+            });
+            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
+                transactionsKeys.list(DEFAULT_FILTERS),
+            );
+
+            // Find the correct position to insert the new transaction
+            const insertIndex =
+                previousTransactions?.findIndex(
+                    (transaction) =>
+                        DateTime.fromISO(transaction.transaction_date) <
+                        DateTime.fromISO(variables.transaction_date),
+                ) ?? 0;
+
+            // Create new array with the transaction inserted at the correct position
+            const updatedTransactions = [
+                ...(previousTransactions?.slice(0, insertIndex) ?? []),
+                variables,
+                ...(previousTransactions?.slice(insertIndex) ?? []),
+            ];
+
+            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+
+            onMutate?.(variables);
+            return { previousTransactions };
+        },
+        onError: (err, data, context: { previousTransactions?: TransactionDto[] }) => {
+            queryClient.setQueryData(
+                transactionsKeys.list(DEFAULT_FILTERS),
+                context?.previousTransactions,
+            );
+
+            console.error('--> create transaction error', err);
+
+            onError?.(err, data, context);
         },
         onSettled: () => {
             return queryClient.invalidateQueries({
@@ -102,14 +175,48 @@ export const useCreateTransaction = (
     });
 };
 
-export const useUpdateTransaction = (
-    options: UseMutationOptions<unknown, Error, UpdateTransactionDto>,
-) => {
+export const useUpdateTransaction = ({
+    onMutate,
+    onError,
+    ...options
+}: UseMutationOptions<unknown, Error, UpdateTransactionDto>) => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (data) => updateTransaction(data),
-        onError: (error) => {
+        onMutate: async (variables) => {
+            await Promise.all([
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.detail(variables.id),
+                }),
+            ]);
+            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
+                transactionsKeys.list(DEFAULT_FILTERS),
+            );
+
+            const updatedTransactions = previousTransactions?.map((transaction) => {
+                if (transaction.id === variables.id) {
+                    return variables;
+                }
+                return transaction;
+            });
+
+            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+            onMutate?.(variables);
+
+            return { previousTransactions };
+        },
+        onError: (error, data, context: { previousTransactions?: TransactionDto[] }) => {
+            queryClient.setQueryData(
+                transactionsKeys.list(DEFAULT_FILTERS),
+                context?.previousTransactions,
+            );
+
+            onError?.(error, data, context);
+
             console.error('--> update transaction error', error);
         },
         onSettled: (data, error, variables) => {
@@ -132,7 +239,32 @@ export const useDeleteTransaction = () => {
 
     return useMutation<unknown, Error, string>({
         mutationFn: deleteTransaction,
-        onError: (error) => {
+        onMutate: async (id) => {
+            await Promise.all([
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.detail(id),
+                }),
+            ]);
+            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
+                transactionsKeys.list(DEFAULT_FILTERS),
+            );
+
+            const updatedTransactions = previousTransactions?.filter(
+                (transaction) => transaction.id !== id,
+            );
+
+            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+
+            return { previousTransactions };
+        },
+        onError: (error, data, context: { previousTransactions?: TransactionDto[] }) => {
+            queryClient.setQueryData(
+                transactionsKeys.list(DEFAULT_FILTERS),
+                context?.previousTransactions,
+            );
             console.error('--> delete transaction error', error);
         },
         onSettled: () => {
