@@ -11,7 +11,18 @@ import { Minus, ChevronLeft, ChevronRight, Plus, Trash } from '@tamagui/lucide-i
 import { DateTime } from 'luxon';
 import { useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { Text, ListItem, ScrollView, XStack, YStack, H4, Form, XGroup } from 'tamagui';
+import {
+    Text,
+    ListItem,
+    ScrollView,
+    XStack,
+    YStack,
+    H4,
+    Form,
+    XGroup,
+    YGroup,
+    Separator,
+} from 'tamagui';
 import { z } from 'zod';
 
 const BudgetFormSchema = z.object({
@@ -131,32 +142,36 @@ export default function Tab() {
                 </XGroup.Item>
             </XGroup>
             <ScrollView flex={1}>
-                {budgetList.data?.map((budget) => (
-                    <ListItem
-                        key={budget.id}
-                        hoverTheme
-                        pressTheme
-                        title={budget.category?.name}
-                        subTitle={
-                            <XStack gap="$2">
-                                <Text color={'$green10'}>20</Text>
-                                <Text color={'$color08'}>of {budget.amount}</Text>
-                            </XStack>
-                        }
-                        icon={
-                            <XStack>
-                                {icons
-                                    .find((icon) => icon.name === budget.category?.icon)
-                                    ?.icon(budget.category?.icon_color)}
-                            </XStack>
-                        }
-                        iconAfter={
-                            <XStack gap="$4">
-                                <Trash />
-                            </XStack>
-                        }
-                    />
-                ))}
+                <YGroup rounded={'$radius.4'} bordered>
+                    {budgetList.data?.map((budget, index) => (
+                        <YGroup.Item key={budget.id}>
+                            {index && <Separator />}
+                            <ListItem
+                                hoverTheme
+                                pressTheme
+                                title={budget.category?.name}
+                                subTitle={
+                                    <XStack gap="$2">
+                                        <Text color={'$green10'}>20</Text>
+                                        <Text color={'$color08'}>of {budget.amount}</Text>
+                                    </XStack>
+                                }
+                                icon={
+                                    <XStack>
+                                        {icons
+                                            .find((icon) => icon.name === budget.category?.icon)
+                                            ?.icon(budget.category?.icon_color)}
+                                    </XStack>
+                                }
+                                iconAfter={
+                                    <XStack gap="$4">
+                                        <Trash />
+                                    </XStack>
+                                }
+                            />
+                        </YGroup.Item>
+                    ))}
+                </YGroup>
             </ScrollView>
             <Button onPress={createBudgetSheet.open} icon={Plus}>
                 Add

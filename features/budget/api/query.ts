@@ -29,8 +29,8 @@ const getBudgetList = async (filters: BudgetFilters) => {
     const { data, error } = await supabase
         .from('budget')
         .select('*, category:category_id (name, icon, icon_color)')
-        // .filter('start_date', '>=', filters.start_date.toISODate())
-        // .filter('end_date', '<=', filters.end_date.toISODate())
+        .filter('start_date', 'gte', filters.start_date.toISODate())
+        .filter('end_date', 'lte', filters.end_date.toISODate())
         .order('category_id');
 
     if (error) {
