@@ -16,8 +16,9 @@ export const Sheet = ({ open, onOpenChange, children, ...props }: SheetProps) =>
             snapPointsMode="fit"
             position={position}
             onPositionChange={setPosition}
+            unmountChildrenWhenHidden
             zIndex={100_000}
-            animation="quick">
+            animation="quicker">
             <TamaguiSheet.Overlay
                 animation="quick"
                 bg="$shadow2"

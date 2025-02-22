@@ -1,5 +1,5 @@
 import { Text } from 'tamagui';
 
-export default function Profile() {
-    return <Text>Profile</Text>;
+export default function List() {
+    return <Text>List</Text>;
 }

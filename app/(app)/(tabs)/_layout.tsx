@@ -26,6 +26,7 @@ export default function TabLayout() {
                 // tabBarActiveTintColor: theme.backgroundFocus.get(),
                 // headerShown: false,
                 animation: 'shift',
+                tabBarHideOnKeyboard: true,
             }}>
             <Tabs.Screen
                 name="index"
