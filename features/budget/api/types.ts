@@ -12,6 +12,7 @@ export type BudgetDto = {
 };
 
 export type CreateBudgetDto = Omit<BudgetDto, 'id' | 'category'>;
+export type UpdateBudgetDto = Omit<BudgetDto, 'category'>;
 
 export type BudgetFilters = {
     start_date: DateTime;

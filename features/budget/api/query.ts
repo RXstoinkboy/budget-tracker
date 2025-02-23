@@ -1,5 +1,5 @@
 import { supabase } from '@/utils/supabase';
-import { BudgetDto, BudgetFilters, CreateBudgetDto } from './types';
+import { BudgetDto, BudgetFilters, CreateBudgetDto, UpdateBudgetDto } from './types';
 import { DateTime } from 'luxon';
 import { MutationOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CategoryDto } from '@/features/categories/api/types';
@@ -24,6 +24,14 @@ export const DEFAULT_FILTERS: BudgetFilters = {
 
 const createBudget = async (data: CreateBudgetDto) => {
     const { error } = await supabase.from('budget').insert(data);
+
+    if (error) {
+        throw error;
+    }
+};
+
+const updateBudget = async (data: UpdateBudgetDto) => {
+    const { error } = await supabase.from('budget').update(data).eq('id', data.id);
 
     if (error) {
         throw error;
@@ -106,6 +114,67 @@ export const useCreateBudget = ({
             return queryClient.invalidateQueries({
                 queryKey: budgetKeys.list(DEFAULT_FILTERS),
             });
+        },
+        ...options,
+    });
+};
+
+export const useEditBudget = ({
+    onMutate,
+    onError,
+    ...options
+}: MutationOptions<unknown, Error, UpdateBudgetDto>) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationKey: budgetKeys.update(),
+        mutationFn: updateBudget,
+        onMutate: async (variables) => {
+            await Promise.all([
+                queryClient.cancelQueries({
+                    queryKey: budgetKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.cancelQueries({
+                    queryKey: budgetKeys.detail(variables.id),
+                }),
+            ]);
+            const previousBudgetList = queryClient.getQueryData<BudgetDto[]>(
+                budgetKeys.list(DEFAULT_FILTERS),
+            );
+            const categories = queryClient.getQueryData<CategoryDto[]>(categoriesKeys.list());
+            const category = categories?.find(({ id }) => id === variables.category_id);
+
+            const updatedBudgetElement = {
+                category,
+                ...variables,
+            };
+
+            const updatedBudgetList = previousBudgetList?.map((budget) => {
+                if (budget.id === variables.id) {
+                    return updatedBudgetElement;
+                }
+                return budget;
+            });
+
+            queryClient.setQueryData(budgetKeys.list(DEFAULT_FILTERS), updatedBudgetList);
+
+            onMutate?.(variables);
+
+            return { previousBudgetList };
+        },
+        onError: (error, data, context: { previousBudget?: BudgetDto[] }) => {
+            queryClient.setQueryData(budgetKeys.list(DEFAULT_FILTERS), context?.previousBudget);
+            console.error('--> update budget error', error);
+        },
+        onSettled: (data, error, variables) => {
+            return Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: budgetKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: budgetKeys.detail(variables.id),
+                }),
+            ]);
         },
         ...options,
     });

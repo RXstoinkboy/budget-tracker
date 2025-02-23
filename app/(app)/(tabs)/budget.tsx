@@ -9,6 +9,7 @@ import {
     DEFAULT_FILTERS,
     useCreateBudget,
     useDeleteBudget,
+    useEditBudget,
     useGetBudgetList,
 } from '@/features/budget/api/query';
 import { BudgetDto } from '@/features/budget/api/types';
@@ -16,7 +17,7 @@ import { useGetCategories } from '@/features/categories/api/query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import {
     Text,
@@ -100,7 +101,7 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
                     />
                     <TextAreaField label="Description" controller={{ name: 'description' }} />
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
-                        <Button>Save</Button>
+                        <Button>Add to list</Button>
                     </Form.Trigger>
                 </Form>
             </YStack>
@@ -119,6 +120,104 @@ export const useCreateBudgetSheet = () => {
         setIsOpen,
         close,
         open,
+    };
+};
+
+type EditBudgetFormProps = {
+    autoFocus?: boolean;
+    onSubmit: () => void;
+    budget: BudgetDto;
+};
+
+export const EditBudgetForm = (props: EditBudgetFormProps) => {
+    const { data } = useGetCategories();
+    const editBudget = useEditBudget({
+        onMutate: () => {
+            props.onSubmit();
+        },
+    });
+    const categoriesOptions = data?.selectOptions || [];
+    const startOfMonth = DateTime.now().startOf('month');
+    const endOfMonth = DateTime.now().endOf('month');
+
+    const methods = useForm<BudgetFormType>({
+        defaultValues: {
+            description: '',
+            category_id: categoriesOptions[0]?.value,
+            // TODO: there is no period selection at the moment so I am using current month
+            start_date: startOfMonth,
+            end_date: endOfMonth,
+            amount: '',
+        },
+        resolver: zodResolver(BudgetFormSchema),
+    });
+
+    const onSubmit = methods.handleSubmit((data) => {
+        editBudget.mutate({
+            ...data,
+            amount: Number(data.amount),
+            start_date: data.start_date.toISODate() ?? startOfMonth.toISODate(),
+            end_date: data.end_date.toISODate() ?? endOfMonth.toISODate(),
+            id: props.budget?.id ?? '',
+        });
+    });
+
+    console.log('errors', methods.formState.errors, methods.formState.isValid);
+
+    useEffect(() => {
+        methods.reset({
+            ...props.budget,
+            amount: String(props.budget.amount),
+            start_date: DateTime.fromISO(props.budget.start_date),
+            end_date: DateTime.fromISO(props.budget.end_date),
+        });
+    }, [methods, props.budget]);
+
+    return (
+        <FormProvider {...methods}>
+            <YStack gap="$4" p={'$2'}>
+                <H4>Edit budget</H4>
+
+                <Form onSubmit={onSubmit} gap={'$2'}>
+                    <InputField
+                        type="number"
+                        label="Amount"
+                        autoFocus={props.autoFocus}
+                        controller={{ name: 'amount', rules: { required: true } }}
+                    />
+                    <SelectField
+                        label="Category"
+                        options={categoriesOptions}
+                        controller={{
+                            name: 'category_id',
+                        }}
+                    />
+                    <TextAreaField label="Description" controller={{ name: 'description' }} />
+                    <Form.Trigger asChild disabled={!methods.formState.isValid}>
+                        <Button>Save changes</Button>
+                    </Form.Trigger>
+                </Form>
+            </YStack>
+        </FormProvider>
+    );
+};
+
+export const useEditBudgetSheet = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [budgetToEdit, setBudgetToEdit] = useState<BudgetDto | null>(null);
+
+    const open = (budget: BudgetDto) => {
+        setBudgetToEdit(budget);
+        setIsOpen(true);
+    };
+    const close = () => setIsOpen(false);
+
+    return {
+        isOpen,
+        setIsOpen,
+        close,
+        open,
+        budgetToEdit,
     };
 };
 
@@ -167,6 +266,7 @@ export const DeleteBudget = (props: DeleteBudgetProps) => {
 
 export default function Tab() {
     const createBudgetSheet = useCreateBudgetSheet();
+    const editBudgetSheet = useEditBudgetSheet();
     const deleteBudgetConfirmation = useDeleteBudgetConfirmation();
     const budgetList = useGetBudgetList();
 
@@ -196,6 +296,7 @@ export default function Tab() {
                                 hoverTheme
                                 pressTheme
                                 title={budget.category?.name}
+                                onPress={() => editBudgetSheet.open(budget)}
                                 subTitle={
                                     <XStack gap="$2">
                                         <Text color={'$green10'}>20</Text>
@@ -230,6 +331,16 @@ export default function Tab() {
                     autoFocus={createBudgetSheet.isOpen}
                     onSubmit={createBudgetSheet.close}
                 />
+            </Sheet>
+
+            <Sheet open={editBudgetSheet.isOpen} onOpenChange={editBudgetSheet.setIsOpen}>
+                {editBudgetSheet.budgetToEdit && (
+                    <EditBudgetForm
+                        autoFocus={editBudgetSheet.isOpen}
+                        onSubmit={editBudgetSheet.close}
+                        budget={editBudgetSheet.budgetToEdit}
+                    />
+                )}
             </Sheet>
 
             <DeleteBudget
