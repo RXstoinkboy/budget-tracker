@@ -17,8 +17,21 @@ export const budgetKeys = {
     delete: () => [...budgetKeys.all, 'delete'] as const,
 };
 
+export const DEFAULT_FILTERS: BudgetFilters = {
+    start_date: DateTime.now().startOf('month'),
+    end_date: DateTime.now().endOf('month'),
+};
+
 const createBudget = async (data: CreateBudgetDto) => {
     const { error } = await supabase.from('budget').insert(data);
+
+    if (error) {
+        throw error;
+    }
+};
+
+const deleteBudget = async (id: string) => {
+    const { error } = await supabase.from('budget').delete().eq('id', id);
 
     if (error) {
         throw error;
@@ -98,9 +111,40 @@ export const useCreateBudget = ({
     });
 };
 
-export const DEFAULT_FILTERS: BudgetFilters = {
-    start_date: DateTime.now().startOf('month'),
-    end_date: DateTime.now().endOf('month'),
+export const useDeleteBudget = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation<unknown, Error, string>({
+        mutationFn: deleteBudget,
+        onMutate: async (id) => {
+            await Promise.all([
+                queryClient.cancelQueries({
+                    queryKey: budgetKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.cancelQueries({
+                    queryKey: budgetKeys.detail(id),
+                }),
+            ]);
+            const previousBudgetList = queryClient.getQueryData<BudgetDto[]>(
+                budgetKeys.list(DEFAULT_FILTERS),
+            );
+
+            const updatedBudgetList = previousBudgetList?.filter((budget) => budget.id !== id);
+
+            queryClient.setQueryData(budgetKeys.list(DEFAULT_FILTERS), updatedBudgetList);
+
+            return { previousBudgetList };
+        },
+        onError: (error, data, context: { previousBudget?: BudgetDto[] }) => {
+            queryClient.setQueryData(budgetKeys.list(DEFAULT_FILTERS), context?.previousBudget);
+            console.error('--> delete budget error', error);
+        },
+        onSettled: () => {
+            return queryClient.invalidateQueries({
+                queryKey: budgetKeys.list(DEFAULT_FILTERS),
+            });
+        },
+    });
 };
 
 export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {

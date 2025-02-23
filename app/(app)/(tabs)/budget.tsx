@@ -1,10 +1,17 @@
 import { Button } from '@/components/button';
+import { DeleteConfirmation, DeleteConfirmationProps } from '@/components/delete-confirmation';
 import { InputField } from '@/components/input-field';
 import { SelectField } from '@/components/select-field';
 import { Sheet } from '@/components/sheet';
 import { TextAreaField } from '@/components/text-area-field';
 import { icons } from '@/consts/icons';
-import { DEFAULT_FILTERS, useCreateBudget, useGetBudgetList } from '@/features/budget/api/query';
+import {
+    DEFAULT_FILTERS,
+    useCreateBudget,
+    useDeleteBudget,
+    useGetBudgetList,
+} from '@/features/budget/api/query';
+import { BudgetDto } from '@/features/budget/api/types';
 import { useGetCategories } from '@/features/categories/api/query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash } from '@tamagui/lucide-icons';
@@ -36,6 +43,7 @@ const BudgetFormSchema = z.object({
 type BudgetFormType = z.infer<typeof BudgetFormSchema>;
 
 type CreateBudgetFormProps = {
+    autoFocus?: boolean;
     onSubmit: () => void;
 };
 
@@ -76,27 +84,21 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
             <YStack gap="$4" p={'$2'}>
                 <H4>Add budget</H4>
 
-                {/* TODO: element to select a period (whole month) */}
                 <Form onSubmit={onSubmit} gap={'$2'}>
                     <InputField
                         type="number"
                         label="Amount"
-                        placeholder="Amount"
+                        autoFocus={props.autoFocus}
                         controller={{ name: 'amount', rules: { required: true } }}
                     />
                     <SelectField
                         label="Category"
                         options={categoriesOptions}
-                        placeholder="Select category"
                         controller={{
                             name: 'category_id',
                         }}
                     />
-                    <TextAreaField
-                        label="description"
-                        placeholder="Description"
-                        controller={{ name: 'description' }}
-                    />
+                    <TextAreaField label="Description" controller={{ name: 'description' }} />
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
                         <Button>Save</Button>
                     </Form.Trigger>
@@ -120,8 +122,52 @@ export const useCreateBudgetSheet = () => {
     };
 };
 
+export const useDeleteBudgetConfirmation = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [budgetToDelete, setBudgetToDelete] = useState<BudgetDto | null>(null);
+
+    const open = (budget: BudgetDto) => {
+        setBudgetToDelete(budget);
+        setIsOpen(true);
+    };
+    const close = () => setIsOpen(false);
+
+    return {
+        isOpen,
+        setIsOpen,
+        close,
+        open,
+        budgetToDelete,
+    };
+};
+
+type DeleteBudgetProps = Omit<DeleteConfirmationProps, 'title' | 'onDelete'> & {
+    budget: BudgetDto | null;
+};
+
+export const DeleteBudget = (props: DeleteBudgetProps) => {
+    const deleteBudget = useDeleteBudget();
+
+    const onDelete = () => {
+        if (!props.budget) {
+            return;
+        }
+        deleteBudget.mutate(props.budget.id);
+        props.onOpenChange?.(false);
+    };
+    return (
+        <DeleteConfirmation
+            open={props.open}
+            onOpenChange={props.onOpenChange}
+            onDelete={onDelete}
+            title={`Are you sure you want to delete ${props.budget?.category?.name} budget?`}
+        />
+    );
+};
+
 export default function Tab() {
     const createBudgetSheet = useCreateBudgetSheet();
+    const deleteBudgetConfirmation = useDeleteBudgetConfirmation();
     const budgetList = useGetBudgetList();
 
     return (
@@ -145,7 +191,7 @@ export default function Tab() {
                 <YGroup rounded={'$radius.4'} bordered>
                     {budgetList.data?.map((budget, index) => (
                         <YGroup.Item key={budget.id}>
-                            {index && <Separator />}
+                            {index ? <Separator /> : null}
                             <ListItem
                                 hoverTheme
                                 pressTheme
@@ -165,7 +211,9 @@ export default function Tab() {
                                 }
                                 iconAfter={
                                     <XStack gap="$4">
-                                        <Trash />
+                                        <Trash
+                                            onPress={() => deleteBudgetConfirmation.open(budget)}
+                                        />
                                     </XStack>
                                 }
                             />
@@ -179,10 +227,16 @@ export default function Tab() {
 
             <Sheet open={createBudgetSheet.isOpen} onOpenChange={createBudgetSheet.setIsOpen}>
                 <CreateBudgetForm
-                    // autoFocus={editSubcategorySheet.isOpen}
+                    autoFocus={createBudgetSheet.isOpen}
                     onSubmit={createBudgetSheet.close}
                 />
             </Sheet>
+
+            <DeleteBudget
+                open={deleteBudgetConfirmation.isOpen}
+                onOpenChange={deleteBudgetConfirmation.setIsOpen}
+                budget={deleteBudgetConfirmation.budgetToDelete}
+            />
         </YStack>
     );
 }

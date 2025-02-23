@@ -9,7 +9,7 @@ import { CategoryChild } from '@/features/categories/components/category-child';
 import { CategoryParent } from '@/features/categories/components/category-parent';
 import { CreateCategoryForm } from '@/features/categories/components/category-form/create-category-form';
 import { EditCategoryForm } from '@/features/categories/components/category-form/edit-category-form';
-import { DeleteConfirmationSheet } from '@/features/categories/components/delete-confirmation-sheet';
+import { DeleteConfirmationSheet } from '@/features/categories/components/delete-confirmation';
 import { CreateSubcategoryForm } from '@/features/categories/components/category-form/create-subcategory-form';
 import { MoveCategoryForm } from '@/features/categories/components/category-form/move-category-form';
 import {
