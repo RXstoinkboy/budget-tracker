@@ -13,7 +13,7 @@ import {
     useGetBudgetList,
 } from '@/features/budget/api/query';
 import { BudgetDto } from '@/features/budget/api/types';
-import { useGetCategories } from '@/features/categories/api/query';
+import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
@@ -49,13 +49,12 @@ type CreateBudgetFormProps = {
 };
 
 export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
-    const { data } = useGetCategories();
     const createBudget = useCreateBudget({
         onMutate: () => {
             props.onSubmit();
         },
     });
-    const categoriesOptions = data?.selectOptions || [];
+    const categoriesOptions = useAvailableBudgetCategories();
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
 
@@ -130,13 +129,12 @@ type EditBudgetFormProps = {
 };
 
 export const EditBudgetForm = (props: EditBudgetFormProps) => {
-    const { data } = useGetCategories();
     const editBudget = useEditBudget({
         onMutate: () => {
             props.onSubmit();
         },
     });
-    const categoriesOptions = data?.selectOptions || [];
+    const categoriesOptions = useAvailableBudgetCategories();
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
 
@@ -161,8 +159,6 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
             id: props.budget?.id ?? '',
         });
     });
-
-    console.log('errors', methods.formState.errors, methods.formState.isValid);
 
     useEffect(() => {
         methods.reset({
