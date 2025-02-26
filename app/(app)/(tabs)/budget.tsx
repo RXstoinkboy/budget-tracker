@@ -30,6 +30,7 @@ import {
     XGroup,
     YGroup,
     Separator,
+    useTheme,
 } from 'tamagui';
 import { z } from 'zod';
 
@@ -265,6 +266,13 @@ export default function Tab() {
     const editBudgetSheet = useEditBudgetSheet();
     const deleteBudgetConfirmation = useDeleteBudgetConfirmation();
     const budgetList = useGetBudgetList();
+    const theme = useTheme();
+
+    const colors = {
+        exceeded: theme.red10,
+        below: theme.green10,
+        exact: theme.accent10,
+    };
 
     return (
         <YStack gap="$4" p="$2" flex={1}>
@@ -285,37 +293,53 @@ export default function Tab() {
             </XGroup>
             <ScrollView flex={1}>
                 <YGroup rounded={'$radius.4'} bordered>
-                    {budgetList.data?.map((budget, index) => (
-                        <YGroup.Item key={budget.id}>
-                            {index ? <Separator /> : null}
-                            <ListItem
-                                hoverTheme
-                                pressTheme
-                                title={budget.category?.name}
-                                onPress={() => editBudgetSheet.open(budget)}
-                                subTitle={
-                                    <XStack gap="$2">
-                                        <Text color={'$green10'}>20</Text>
-                                        <Text color={'$color08'}>of {budget.amount}</Text>
-                                    </XStack>
-                                }
-                                icon={
-                                    <XStack>
-                                        {icons
-                                            .find((icon) => icon.name === budget.category?.icon)
-                                            ?.icon(budget.category?.icon_color)}
-                                    </XStack>
-                                }
-                                iconAfter={
-                                    <XStack gap="$4">
-                                        <Trash
-                                            onPress={() => deleteBudgetConfirmation.open(budget)}
-                                        />
-                                    </XStack>
-                                }
-                            />
-                        </YGroup.Item>
-                    ))}
+                    {budgetList.data?.map((budget, index) => {
+                        const isMoreThanPlanned = budget.spent > budget.amount;
+                        const isLessThanPlanned = budget.spent < budget.amount;
+                        const isExact = budget.spent === budget.amount;
+
+                        const color = isMoreThanPlanned
+                            ? colors.exceeded
+                            : isLessThanPlanned
+                              ? colors.below
+                              : isExact
+                                ? colors.exact
+                                : undefined;
+
+                        return (
+                            <YGroup.Item key={budget.id}>
+                                {index ? <Separator /> : null}
+                                <ListItem
+                                    hoverTheme
+                                    pressTheme
+                                    title={budget.category?.name}
+                                    onPress={() => editBudgetSheet.open(budget)}
+                                    subTitle={
+                                        <XStack gap="$2">
+                                            <Text color={color}>{budget.spent}</Text>
+                                            <Text color={'$color08'}>of {budget.amount}</Text>
+                                        </XStack>
+                                    }
+                                    icon={
+                                        <XStack>
+                                            {icons
+                                                .find((icon) => icon.name === budget.category?.icon)
+                                                ?.icon(budget.category?.icon_color)}
+                                        </XStack>
+                                    }
+                                    iconAfter={
+                                        <XStack gap="$4">
+                                            <Trash
+                                                onPress={() =>
+                                                    deleteBudgetConfirmation.open(budget)
+                                                }
+                                            />
+                                        </XStack>
+                                    }
+                                />
+                            </YGroup.Item>
+                        );
+                    })}
                 </YGroup>
             </ScrollView>
             <Button onPress={createBudgetSheet.open} icon={Plus}>

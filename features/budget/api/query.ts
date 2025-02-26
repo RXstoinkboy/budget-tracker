@@ -4,6 +4,7 @@ import { DateTime } from 'luxon';
 import { MutationOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CategoryDto } from '@/features/categories/api/types';
 import { categoriesKeys } from '@/features/categories/api/query';
+import { useGetTransactionsSummary } from '@/features/transactions/api/query';
 
 export const budgetKeys = {
     all: ['budget'] as const,
@@ -217,10 +218,24 @@ export const useDeleteBudget = () => {
 };
 
 export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
-    return useQuery({
+    const { data: transactionSummaries } = useGetTransactionsSummary(filters);
+    const { data: budgets, ...rest } = useQuery({
         queryKey: budgetKeys.list(filters),
         queryFn: () => getBudgetList(filters),
     });
+
+    // Combine budgets with transaction summaries
+    const enrichedBudgets = budgets?.map((budget) => ({
+        ...budget,
+        spent:
+            transactionSummaries?.find((summary) => summary.category_id === budget.category_id)
+                ?.total_amount || 0,
+    }));
+
+    return {
+        ...rest,
+        data: enrichedBudgets,
+    };
 };
 
 export const useGetBudgetDetails = (id: string) => {

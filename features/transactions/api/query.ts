@@ -1,3 +1,5 @@
+import { BudgetFilters } from '@/features/budget/api/types';
+import { DEFAULT_FILTERS as BUDGET_DEFAULT_FILTERS } from '@/features/budget/api/query';
 import {
     CreateTransactionDto,
     TransactionDto,
@@ -19,6 +21,8 @@ export const transactionsKeys = {
     all: ['transactions'] as const,
     lists: () => [...transactionsKeys.all, 'list'] as const,
     list: (filters: TransactionFilters) => [...transactionsKeys.lists(), { filters }] as const,
+    listSummary: (filters: BudgetFilters) =>
+        [...transactionsKeys.lists(), 'summary', { filters }] as const,
     create: () => [...transactionsKeys.all, 'create'] as const,
     updates: () => [...transactionsKeys.all, 'update'] as const,
     delete: () => [...transactionsKeys.all, 'delete'] as const,
@@ -56,14 +60,32 @@ const deleteTransaction = async (id: TransactionDto['id']) => {
 
 const getTransactions = async (filters: TransactionFilters) => {
     const startOfMonth = DateTime.now().startOf('month').toISODate();
+    const endOfMonth = DateTime.now().endOf('month').toISODate();
 
     const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .filter('transaction_date', 'gte', startOfMonth)
+        .filter('transaction_date', 'lte', endOfMonth)
         .order('transaction_date', {
             ascending: false,
         });
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+};
+
+const getTransactionsSummary = async (filters: BudgetFilters) => {
+    const startOfMonth = DateTime.now().startOf('month').toISODate();
+    const endOfMonth = DateTime.now().endOf('month').toISODate();
+
+    const { data, error } = await supabase.rpc('get_transaction_sums_by_category', {
+        start_date: startOfMonth,
+        end_date: endOfMonth,
+    });
 
     if (error) {
         throw error;
@@ -107,11 +129,15 @@ export const useCreateTransaction = ({
                         DateTime.fromISO(transaction.transaction_date) <
                         DateTime.fromISO(variables.transaction_date),
                 ) ?? 0;
+            const newTransaction = {
+                ...variables,
+                id: new Date().toString(),
+            };
 
             // Create new array with the transaction inserted at the correct position
             const updatedTransactions = [
                 ...(previousTransactions?.slice(0, insertIndex) ?? []),
-                variables,
+                newTransaction,
                 ...(previousTransactions?.slice(insertIndex) ?? []),
             ];
 
@@ -131,9 +157,14 @@ export const useCreateTransaction = ({
             onError?.(err, data, context);
         },
         onSettled: () => {
-            return queryClient.invalidateQueries({
-                queryKey: transactionsKeys.lists(),
-            });
+            return Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: transactionsKeys.lists(),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                }),
+            ]);
         },
         mutationKey: transactionsKeys.create(),
         ...options,
@@ -277,6 +308,14 @@ export const useGetTransactions = (filters: TransactionFilters = DEFAULT_FILTERS
             raw: data,
             list: formatToList(data),
         }),
+    });
+};
+
+export const useGetTransactionsSummary = (filters: BudgetFilters = BUDGET_DEFAULT_FILTERS) => {
+    // TODO: add types
+    return useQuery({
+        queryKey: transactionsKeys.listSummary(filters),
+        queryFn: () => getTransactionsSummary(filters),
     });
 };
 
