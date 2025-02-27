@@ -372,47 +372,52 @@ export default function Tab() {
                         );
                     })}
                 </YGroup>
-                <Card rounded={'$radius.4'} bordered mt={'$4'}>
-                    <YStack>
-                        <XStack p={'$4'} flex={1} justify={'space-between'}>
-                            <Paragraph>Not planned</Paragraph>
-                            <Paragraph>6000</Paragraph>
-                        </XStack>
-                        <Button self={'flex-start'} chromeless icon={Plus}>
-                            Plan without category
-                        </Button>
-                        <YGroup>
-                            <YGroup.Item>
-                                <ListItem
-                                    hoverTheme
-                                    title={'Test not planned'}
-                                    subTitle={<Text color={'$color08'}>3000</Text>}
-                                    iconAfter={
-                                        <XStack>
-                                            <ListPlus />
-                                        </XStack>
-                                    }
-                                />
-                                {/* TODO: have to open prefilled form for creating new budget entry */}
-                                <ListItem
-                                    hoverTheme
-                                    title={'Test not planned'}
-                                    subTitle={<Text color={'$color08'}>3000</Text>}
-                                    icon={
-                                        <XStack>
-                                            <ListPlus />
-                                        </XStack>
-                                    }
-                                    iconAfter={
-                                        <XStack>
-                                            <ListPlus />
-                                        </XStack>
-                                    }
-                                />
-                            </YGroup.Item>
-                        </YGroup>
-                    </YStack>
-                </Card>
+                {budgetList.data?.notPlanned.totalSpent && (
+                    <Card rounded={'$radius.4'} bordered mt={'$4'}>
+                        <YStack>
+                            <XStack p={'$4'} flex={1} justify={'space-between'} items="center">
+                                <XStack flex={1} items="center">
+                                    <Paragraph>Not planned:</Paragraph>
+                                    <Button mx={'$4'} size={'$3'} variant="outlined" icon={Plus}>
+                                        Add all
+                                    </Button>
+                                </XStack>
+                                <Paragraph>{budgetList.data?.notPlanned.totalSpent}</Paragraph>
+                            </XStack>
+                            <Separator />
+                            <YGroup>
+                                <YGroup.Item>
+                                    <ListItem
+                                        hoverTheme
+                                        title={'Test not planned'}
+                                        subTitle={<Text color={'$color08'}>3000</Text>}
+                                        iconAfter={
+                                            <XStack>
+                                                <ListPlus />
+                                            </XStack>
+                                        }
+                                    />
+                                    {/* TODO: have to open prefilled form for creating new budget entry */}
+                                    <ListItem
+                                        hoverTheme
+                                        title={'Test not planned'}
+                                        subTitle={<Text color={'$color08'}>3000</Text>}
+                                        icon={
+                                            <XStack>
+                                                <ListPlus />
+                                            </XStack>
+                                        }
+                                        iconAfter={
+                                            <XStack>
+                                                <ListPlus />
+                                            </XStack>
+                                        }
+                                    />
+                                </YGroup.Item>
+                            </YGroup>
+                        </YStack>
+                    </Card>
+                )}
             </ScrollView>
             <Button onPress={createBudgetSheet.open} icon={Plus}>
                 Add
