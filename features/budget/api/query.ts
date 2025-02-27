@@ -4,6 +4,7 @@ import {
     BudgetFilters,
     CreateBudgetDto,
     EnrichedBudget,
+    ExtendedTransactionSummary,
     ProcessedBudgetData,
     TransactionSummary,
     UpdateBudgetDto,
@@ -227,6 +228,8 @@ export const useDeleteBudget = () => {
 };
 
 export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
+    // TODO: better to use ensureQuery instead of useQuery to get data from cache
+    // it will also avoid cyclic dependencies
     const { data: transactionSummaries } = useGetTransactionsSummary(filters);
     const { data: budgets, ...rest } = useQuery({
         queryKey: budgetKeys.list(filters),
@@ -236,6 +239,7 @@ export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
     const processedData = useMemo((): ProcessedBudgetData | null => {
         if (!budgets || !transactionSummaries) return null;
 
+        // TODO: clean up
         const result: ProcessedBudgetData = {
             budgets: [],
             total: {
@@ -267,13 +271,16 @@ export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
         });
 
         // Process transactions without budgets
-        transactionSummaries.forEach((summary: TransactionSummary) => {
+        transactionSummaries.forEach((summary: ExtendedTransactionSummary) => {
             result.total.spentAll += summary.total_amount;
 
             if (!budgets.some((budget) => budget.category_id === summary.category_id)) {
                 result.notPlanned.totalSpent += summary.total_amount;
                 result.notPlanned.categories.push({
                     category_id: summary.category_id,
+                    name: summary.name,
+                    icon: summary.icon,
+                    icon_color: summary.icon_color,
                     spent: summary.total_amount,
                 });
             }

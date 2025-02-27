@@ -391,13 +391,15 @@ export default function Tab() {
                                         {/* TODO: have to open prefilled form for creating new budget entry */}
                                         <ListItem
                                             hoverTheme
-                                            title={category.category_id}
+                                            title={category.name}
                                             subTitle={
                                                 <Text color={'$color08'}>{category.spent}</Text>
                                             }
                                             icon={
                                                 <XStack>
-                                                    <ListPlus />
+                                                    {icons
+                                                        .find((icon) => icon.name === category.icon)
+                                                        ?.icon(category.icon_color)}
                                                 </XStack>
                                             }
                                             iconAfter={

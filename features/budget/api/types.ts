@@ -26,6 +26,12 @@ export interface TransactionSummary {
     total_amount: number;
 }
 
+export interface ExtendedTransactionSummary extends TransactionSummary {
+    name: CategoryDto['name'];
+    icon: CategoryDto['icon'];
+    icon_color: CategoryDto['icon_color'];
+}
+
 // Interface for enriched budget with spent amount
 export type EnrichedBudget = BudgetDto & {
     spent: number;
@@ -34,6 +40,9 @@ export type EnrichedBudget = BudgetDto & {
 // Interface for not planned categories
 export interface UnplannedCategory {
     category_id: string;
+    name: CategoryDto['name'];
+    icon: CategoryDto['icon'];
+    icon_color: CategoryDto['icon_color'];
     spent: number;
 }
 

@@ -1,4 +1,4 @@
-import { BudgetFilters } from '@/features/budget/api/types';
+import { BudgetFilters, TransactionSummary } from '@/features/budget/api/types';
 import { DEFAULT_FILTERS as BUDGET_DEFAULT_FILTERS } from '@/features/budget/api/query';
 import {
     CreateTransactionDto,
@@ -16,6 +16,8 @@ import {
     UseQueryOptions,
 } from '@tanstack/react-query';
 import { DateTime } from 'luxon';
+import { categoriesKeys, useGetCategories } from '@/features/categories/api/query';
+import { CategoryDto } from '@/features/categories/api/types';
 
 export const transactionsKeys = {
     all: ['transactions'] as const,
@@ -312,10 +314,23 @@ export const useGetTransactions = (filters: TransactionFilters = DEFAULT_FILTERS
 };
 
 export const useGetTransactionsSummary = (filters: BudgetFilters = BUDGET_DEFAULT_FILTERS) => {
+    const { data: categories } = useGetCategories();
+
     // TODO: add types
-    return useQuery({
+    return useQuery<TransactionSummary[], Error, TransactionSummary[]>({
         queryKey: transactionsKeys.listSummary(filters),
         queryFn: () => getTransactionsSummary(filters),
+        select: (rawData) =>
+            rawData.map((summary) => {
+                const { name, icon, icon_color } =
+                    categories?.list.find((cat) => cat.id === summary.category_id) ?? {};
+                return {
+                    ...summary,
+                    name,
+                    icon,
+                    icon_color,
+                };
+            }),
     });
 };
 
