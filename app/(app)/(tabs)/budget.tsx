@@ -386,34 +386,28 @@ export default function Tab() {
                             </XStack>
                             <Separator />
                             <YGroup>
-                                <YGroup.Item>
-                                    <ListItem
-                                        hoverTheme
-                                        title={'Test not planned'}
-                                        subTitle={<Text color={'$color08'}>3000</Text>}
-                                        iconAfter={
-                                            <XStack>
-                                                <ListPlus />
-                                            </XStack>
-                                        }
-                                    />
-                                    {/* TODO: have to open prefilled form for creating new budget entry */}
-                                    <ListItem
-                                        hoverTheme
-                                        title={'Test not planned'}
-                                        subTitle={<Text color={'$color08'}>3000</Text>}
-                                        icon={
-                                            <XStack>
-                                                <ListPlus />
-                                            </XStack>
-                                        }
-                                        iconAfter={
-                                            <XStack>
-                                                <ListPlus />
-                                            </XStack>
-                                        }
-                                    />
-                                </YGroup.Item>
+                                {budgetList.data?.notPlanned.categories.map((category) => (
+                                    <YGroup.Item key={category.category_id}>
+                                        {/* TODO: have to open prefilled form for creating new budget entry */}
+                                        <ListItem
+                                            hoverTheme
+                                            title={category.category_id}
+                                            subTitle={
+                                                <Text color={'$color08'}>{category.spent}</Text>
+                                            }
+                                            icon={
+                                                <XStack>
+                                                    <ListPlus />
+                                                </XStack>
+                                            }
+                                            iconAfter={
+                                                <XStack>
+                                                    <ListPlus />
+                                                </XStack>
+                                            }
+                                        />
+                                    </YGroup.Item>
+                                ))}
                             </YGroup>
                         </YStack>
                     </Card>

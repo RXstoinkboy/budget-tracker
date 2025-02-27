@@ -227,45 +227,6 @@ export const useDeleteBudget = () => {
 };
 
 export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
-    // const { data: transactionSummaries } = useGetTransactionsSummary(filters);
-    // const { data: budgets, ...rest } = useQuery({
-    //     queryKey: budgetKeys.list(filters),
-    //     queryFn: () => getBudgetList(filters),
-    // });
-
-    // // Combine budgets with transaction summaries
-    // const enrichedBudgets = budgets?.map((budget) => ({
-    //     ...budget,
-    //     spent:
-    //         transactionSummaries?.find((summary) => summary.category_id === budget.category_id)
-    //             ?.total_amount || 0,
-    // }));
-
-    // /* I want to return data in such form:
-    //     {
-    //         ...rest,
-    //         budgets: enrichedBudgets, // list of budgets with sum of transactions already done in this category_id,
-    //         total: { // sum of all transactions in all categories
-    //             planned, // sum of all transactions in all categories that are planned
-    //             notPlanned, // sum of all transactions in all categories that are not planned,
-    //             all // sum of both above
-    //         },
-    //         notPlanned: {
-    //             categories: [ // list of spending in categories that are not planned
-    //                 {
-    //                     category_id,
-    //                     spent
-    //                 }
-    //             ]
-    //         },
-
-    //     }
-    // */
-
-    // return {
-    //     ...rest,
-    //     data: enrichedBudgets,
-    // };
     const { data: transactionSummaries } = useGetTransactionsSummary(filters);
     const { data: budgets, ...rest } = useQuery({
         queryKey: budgetKeys.list(filters),
