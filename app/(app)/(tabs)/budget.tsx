@@ -15,7 +15,7 @@ import {
 import { BudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Minus, ChevronLeft, ChevronRight, Plus, Trash } from '@tamagui/lucide-icons';
+import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -31,6 +31,8 @@ import {
     YGroup,
     Separator,
     useTheme,
+    Card,
+    Paragraph,
 } from 'tamagui';
 import { z } from 'zod';
 
@@ -261,11 +263,7 @@ export const DeleteBudget = (props: DeleteBudgetProps) => {
     );
 };
 
-export default function Tab() {
-    const createBudgetSheet = useCreateBudgetSheet();
-    const editBudgetSheet = useEditBudgetSheet();
-    const deleteBudgetConfirmation = useDeleteBudgetConfirmation();
-    const budgetList = useGetBudgetList();
+const useBalanceColors = () => {
     const theme = useTheme();
 
     const colors = {
@@ -273,6 +271,29 @@ export default function Tab() {
         below: theme.green10,
         exact: theme.accent10,
     };
+
+    const getColor = (spent: number, planned: number) => {
+        if (spent > planned) {
+            return colors.exceeded;
+        }
+        if (spent < planned) {
+            return colors.below;
+        }
+        return colors.exact;
+    };
+
+    return {
+        ...colors,
+        getColor,
+    };
+};
+
+export default function Tab() {
+    const createBudgetSheet = useCreateBudgetSheet();
+    const editBudgetSheet = useEditBudgetSheet();
+    const deleteBudgetConfirmation = useDeleteBudgetConfirmation();
+    const budgetList = useGetBudgetList();
+    const { getColor } = useBalanceColors();
 
     return (
         <YStack gap="$4" p="$2" flex={1}>
@@ -292,19 +313,29 @@ export default function Tab() {
                 </XGroup.Item>
             </XGroup>
             <ScrollView flex={1}>
+                <YStack p="$2" gap={'$2'}>
+                    <XStack flex={1} justify="space-between">
+                        <Paragraph>Planned expenses:</Paragraph>
+                        <Paragraph>{budgetList.data?.total.planned}</Paragraph>
+                    </XStack>
+                    <XStack flex={1} justify="space-between">
+                        <Paragraph>Spent in planned:</Paragraph>
+                        <Paragraph
+                            color={getColor(
+                                budgetList.data?.total.spentInPlanned ?? 0,
+                                budgetList.data?.total.planned ?? 0,
+                            )}>
+                            {budgetList.data?.total.spentInPlanned}
+                        </Paragraph>
+                    </XStack>
+                    <XStack flex={1} justify="space-between">
+                        <Paragraph>Total spent:</Paragraph>
+                        <Paragraph>{budgetList.data?.total.spentAll}</Paragraph>
+                    </XStack>
+                </YStack>
                 <YGroup rounded={'$radius.4'} bordered>
-                    {budgetList.data?.map((budget, index) => {
-                        const isMoreThanPlanned = budget.spent > budget.amount;
-                        const isLessThanPlanned = budget.spent < budget.amount;
-                        const isExact = budget.spent === budget.amount;
-
-                        const color = isMoreThanPlanned
-                            ? colors.exceeded
-                            : isLessThanPlanned
-                              ? colors.below
-                              : isExact
-                                ? colors.exact
-                                : undefined;
+                    {budgetList.data?.budgets.map((budget, index) => {
+                        const color = getColor(budget.spent, budget.amount);
 
                         return (
                             <YGroup.Item key={budget.id}>
@@ -341,6 +372,47 @@ export default function Tab() {
                         );
                     })}
                 </YGroup>
+                <Card rounded={'$radius.4'} bordered mt={'$4'}>
+                    <YStack>
+                        <XStack p={'$4'} flex={1} justify={'space-between'}>
+                            <Paragraph>Not planned</Paragraph>
+                            <Paragraph>6000</Paragraph>
+                        </XStack>
+                        <Button self={'flex-start'} chromeless icon={Plus}>
+                            Plan without category
+                        </Button>
+                        <YGroup>
+                            <YGroup.Item>
+                                <ListItem
+                                    hoverTheme
+                                    title={'Test not planned'}
+                                    subTitle={<Text color={'$color08'}>3000</Text>}
+                                    iconAfter={
+                                        <XStack>
+                                            <ListPlus />
+                                        </XStack>
+                                    }
+                                />
+                                {/* TODO: have to open prefilled form for creating new budget entry */}
+                                <ListItem
+                                    hoverTheme
+                                    title={'Test not planned'}
+                                    subTitle={<Text color={'$color08'}>3000</Text>}
+                                    icon={
+                                        <XStack>
+                                            <ListPlus />
+                                        </XStack>
+                                    }
+                                    iconAfter={
+                                        <XStack>
+                                            <ListPlus />
+                                        </XStack>
+                                    }
+                                />
+                            </YGroup.Item>
+                        </YGroup>
+                    </YStack>
+                </Card>
             </ScrollView>
             <Button onPress={createBudgetSheet.open} icon={Plus}>
                 Add

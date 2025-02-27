@@ -18,3 +18,50 @@ export type BudgetFilters = {
     start_date: DateTime;
     end_date: DateTime;
 };
+
+// TRANSACTIONS SUMMARY
+// Basic interfaces for raw data
+export interface TransactionSummary {
+    category_id: string;
+    total_amount: number;
+}
+
+// Interface for enriched budget with spent amount
+export type EnrichedBudget = BudgetDto & {
+    spent: number;
+};
+
+// Interface for not planned categories
+export interface UnplannedCategory {
+    category_id: string;
+    spent: number;
+}
+
+// Interface for totals
+export interface BudgetTotals {
+    planned: number;
+    spentInPlanned: number;
+    spentAll: number;
+}
+
+// Interface for not planned data
+export interface NotPlannedData {
+    totalSpent: number;
+    categories: UnplannedCategory[];
+}
+
+// Main result interface
+export interface ProcessedBudgetData {
+    budgets: EnrichedBudget[];
+    total: BudgetTotals;
+    notPlanned: NotPlannedData;
+}
+
+// Query result interface
+export interface BudgetQueryResult {
+    data: ProcessedBudgetData | null;
+    // Add other query properties like isLoading, error, etc.
+    isLoading: boolean;
+    isError: boolean;
+    error: unknown;
+}

@@ -4,7 +4,7 @@ import { useGetBudgetList } from '../api/query';
 export const useAvailableBudgetCategories = () => {
     const { data } = useGetCategories();
     const budgetList = useGetBudgetList();
-    const selectedOptions = budgetList.data?.map((budget) => budget.category_id) || [];
+    const selectedOptions = budgetList.data?.budgets.map((budget) => budget.category_id) || [];
 
     return data?.selectOptions.filter((option) => !selectedOptions.includes(option.value)) || [];
 };
