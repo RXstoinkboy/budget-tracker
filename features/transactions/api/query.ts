@@ -14,10 +14,10 @@ import {
     UseMutationOptions,
     useQueryClient,
     UseQueryOptions,
+    QueryClient,
 } from '@tanstack/react-query';
 import { DateTime } from 'luxon';
-import { categoriesKeys, useGetCategories } from '@/features/categories/api/query';
-import { CategoryDto } from '@/features/categories/api/types';
+import { useGetCategories } from '@/features/categories/api/query';
 
 export const transactionsKeys = {
     all: ['transactions'] as const,
@@ -106,6 +106,63 @@ const getTransactionDetails = async (id: string) => {
     return data[0];
 };
 
+const updateTransactionsOnCreate = (
+    variables: CreateTransactionDto,
+    queryClient: QueryClient,
+): {
+    previousTransactions?: TransactionDto[];
+} => {
+    const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
+        transactionsKeys.list(DEFAULT_FILTERS),
+    );
+
+    // Find the correct position to insert the new transaction
+    const insertIndex =
+        previousTransactions?.findIndex(
+            (transaction) =>
+                DateTime.fromISO(transaction.transaction_date) <
+                DateTime.fromISO(variables.transaction_date),
+        ) ?? 0;
+    const newTransaction = {
+        ...variables,
+        id: new Date().toString(),
+    };
+
+    // Create new array with the transaction inserted at the correct position
+    const updatedTransactions = [
+        ...(previousTransactions?.slice(0, insertIndex) ?? []),
+        newTransaction,
+        ...(previousTransactions?.slice(insertIndex) ?? []),
+    ];
+
+    queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+
+    return { previousTransactions };
+};
+
+const updateTransactionsSummaryOnCreate = (
+    transaction: CreateTransactionDto,
+    queryClient: QueryClient,
+) => {
+    const previousSummary = queryClient.getQueryData<TransactionSummary[]>(
+        transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+    );
+
+    const updatedSummary = previousSummary?.map((summary) => {
+        if (summary.category_id === transaction?.category_id) {
+            return {
+                ...summary,
+                total_amount: summary.total_amount + transaction.amount,
+            };
+        }
+        return summary;
+    });
+
+    queryClient.setQueryData(transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS), updatedSummary);
+
+    return { previousSummary };
+};
+
 export const useCreateTransaction = ({
     onMutate,
     onError,
@@ -117,41 +174,35 @@ export const useCreateTransaction = ({
         // TODO: use dynamic filters here later on instead of hard coced default values
         mutationFn: createTransaction,
         onMutate: async (variables) => {
-            await queryClient.cancelQueries({
-                queryKey: transactionsKeys.list(DEFAULT_FILTERS),
-            });
-            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
-                transactionsKeys.list(DEFAULT_FILTERS),
-            );
-
-            // Find the correct position to insert the new transaction
-            const insertIndex =
-                previousTransactions?.findIndex(
-                    (transaction) =>
-                        DateTime.fromISO(transaction.transaction_date) <
-                        DateTime.fromISO(variables.transaction_date),
-                ) ?? 0;
-            const newTransaction = {
-                ...variables,
-                id: new Date().toString(),
-            };
-
-            // Create new array with the transaction inserted at the correct position
-            const updatedTransactions = [
-                ...(previousTransactions?.slice(0, insertIndex) ?? []),
-                newTransaction,
-                ...(previousTransactions?.slice(insertIndex) ?? []),
-            ];
-
-            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+            await Promise.all([
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.list(DEFAULT_FILTERS),
+                }),
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                }),
+            ]);
+            const { previousTransactions } = updateTransactionsOnCreate(variables, queryClient);
+            const { previousSummary } = updateTransactionsSummaryOnCreate(variables, queryClient);
 
             onMutate?.(variables);
-            return { previousTransactions };
+            return { previousTransactions, previousSummary };
         },
-        onError: (err, data, context: { previousTransactions?: TransactionDto[] }) => {
+        onError: (
+            err,
+            data,
+            context: {
+                previousTransactions?: TransactionDto[];
+                previousSummary?: TransactionSummary[];
+            },
+        ) => {
             queryClient.setQueryData(
                 transactionsKeys.list(DEFAULT_FILTERS),
                 context?.previousTransactions,
+            );
+            queryClient.setQueryData(
+                transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                context?.previousSummary,
             );
 
             console.error('--> create transaction error', err);
@@ -173,6 +224,60 @@ export const useCreateTransaction = ({
     });
 };
 
+const updateTransactionsOnUpdate = (
+    variables: UpdateTransactionDto,
+    queryClient: QueryClient,
+): {
+    previousTransactions?: TransactionDto[];
+} => {
+    const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
+        transactionsKeys.list(DEFAULT_FILTERS),
+    );
+
+    const updatedTransactions = previousTransactions?.map((transaction) => {
+        if (transaction.id === variables.id) {
+            return variables;
+        }
+        return transaction;
+    });
+
+    queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+    return { previousTransactions };
+};
+
+const updateTransactionsSummaryOnUpdate = (
+    variables: UpdateTransactionDto,
+    previousTransaction: TransactionDto | undefined,
+    queryClient: QueryClient,
+) => {
+    const previousSummary = queryClient.getQueryData<TransactionSummary[]>(
+        transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+    );
+    if (!previousTransaction) {
+        return { previousSummary };
+    }
+
+    const diff = previousTransaction.amount - variables.amount;
+
+    if (diff === 0) {
+        return { previousSummary };
+    }
+
+    const updatedSummary = previousSummary?.map((summary) => {
+        if (summary.category_id === variables.category_id) {
+            return {
+                ...summary,
+                total_amount: summary.total_amount + diff,
+            };
+        }
+        return summary;
+    });
+
+    queryClient.setQueryData(transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS), updatedSummary);
+
+    return { previousSummary };
+};
+
 export const useUpdateTransaction = ({
     onMutate,
     onError,
@@ -190,27 +295,40 @@ export const useUpdateTransaction = ({
                 queryClient.cancelQueries({
                     queryKey: transactionsKeys.detail(variables.id),
                 }),
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                }),
             ]);
-            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
-                transactionsKeys.list(DEFAULT_FILTERS),
+
+            const { previousTransactions } = updateTransactionsOnUpdate(variables, queryClient);
+            const previousTransaction = previousTransactions?.find(
+                (transaction) => transaction.id === variables.id,
+            );
+            const { previousSummary } = updateTransactionsSummaryOnUpdate(
+                variables,
+                previousTransaction,
+                queryClient,
             );
 
-            const updatedTransactions = previousTransactions?.map((transaction) => {
-                if (transaction.id === variables.id) {
-                    return variables;
-                }
-                return transaction;
-            });
-
-            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
             onMutate?.(variables);
 
-            return { previousTransactions };
+            return { previousTransactions, previousSummary };
         },
-        onError: (error, data, context: { previousTransactions?: TransactionDto[] }) => {
+        onError: (
+            error,
+            data,
+            context: {
+                previousTransactions?: TransactionDto[];
+                previousSummary?: TransactionSummary[];
+            },
+        ) => {
             queryClient.setQueryData(
                 transactionsKeys.list(DEFAULT_FILTERS),
                 context?.previousTransactions,
+            );
+            queryClient.setQueryData(
+                transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                context?.previousSummary,
             );
 
             onError?.(error, data, context);
@@ -232,6 +350,47 @@ export const useUpdateTransaction = ({
     });
 };
 
+const updateTransactionsOnDelete = (
+    id: string,
+    queryClient: QueryClient,
+): {
+    previousTransactions: TransactionDto[];
+} => {
+    const previousTransactions =
+        queryClient.getQueryData<TransactionDto[]>(transactionsKeys.list(DEFAULT_FILTERS)) ?? [];
+
+    const updatedTransactions = previousTransactions?.filter(
+        (transaction) => transaction.id !== id,
+    );
+
+    queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
+
+    return { previousTransactions };
+};
+
+const updateTransactionsSummaryOnDelete = (
+    queryClient: QueryClient,
+    transaction?: TransactionDto,
+) => {
+    const previousSummary = queryClient.getQueryData<TransactionSummary[]>(
+        transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+    );
+
+    const updatedSummary = previousSummary?.map((summary) => {
+        if (summary.category_id === transaction?.category_id) {
+            return {
+                ...summary,
+                total_amount: summary.total_amount - transaction.amount,
+            };
+        }
+        return summary;
+    });
+
+    queryClient.setQueryData(transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS), updatedSummary);
+
+    return { previousSummary };
+};
+
 export const useDeleteTransaction = () => {
     const queryClient = useQueryClient();
 
@@ -245,23 +404,36 @@ export const useDeleteTransaction = () => {
                 queryClient.cancelQueries({
                     queryKey: transactionsKeys.detail(id),
                 }),
+                queryClient.cancelQueries({
+                    queryKey: transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                }),
             ]);
-            const previousTransactions = queryClient.getQueryData<TransactionDto[]>(
-                transactionsKeys.list(DEFAULT_FILTERS),
+            const { previousTransactions } = updateTransactionsOnDelete(id, queryClient);
+            const prevTransaction = previousTransactions?.find(
+                (transaction) => transaction.id === id,
+            );
+            const { previousSummary } = updateTransactionsSummaryOnDelete(
+                queryClient,
+                prevTransaction,
             );
 
-            const updatedTransactions = previousTransactions?.filter(
-                (transaction) => transaction.id !== id,
-            );
-
-            queryClient.setQueryData(transactionsKeys.list(DEFAULT_FILTERS), updatedTransactions);
-
-            return { previousTransactions };
+            return { previousTransactions, previousSummary };
         },
-        onError: (error, data, context: { previousTransactions?: TransactionDto[] }) => {
+        onError: (
+            error,
+            data,
+            context: {
+                previousTransactions?: TransactionDto[];
+                previousSummary?: TransactionSummary[];
+            },
+        ) => {
             queryClient.setQueryData(
                 transactionsKeys.list(DEFAULT_FILTERS),
                 context?.previousTransactions,
+            );
+            queryClient.setQueryData(
+                transactionsKeys.listSummary(BUDGET_DEFAULT_FILTERS),
+                context?.previousSummary,
             );
             console.error('--> delete transaction error', error);
         },
@@ -316,7 +488,6 @@ export const useGetTransactions = (filters: TransactionFilters = DEFAULT_FILTERS
 export const useGetTransactionsSummary = (filters: BudgetFilters = BUDGET_DEFAULT_FILTERS) => {
     const { data: categories } = useGetCategories();
 
-    // TODO: add types
     return useQuery<TransactionSummary[], Error, TransactionSummary[]>({
         queryKey: transactionsKeys.listSummary(filters),
         queryFn: () => getTransactionsSummary(filters),
