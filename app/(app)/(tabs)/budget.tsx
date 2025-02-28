@@ -131,25 +131,25 @@ type EditBudgetFormProps = {
     budget: BudgetDto;
 };
 
+const mapBudgetToForm = (budget: BudgetDto) => ({
+    ...budget,
+    amount: String(budget.amount),
+    start_date: DateTime.fromISO(budget.start_date),
+    end_date: DateTime.fromISO(budget.end_date),
+});
+
 export const EditBudgetForm = (props: EditBudgetFormProps) => {
     const editBudget = useEditBudget({
         onMutate: () => {
             props.onSubmit();
         },
     });
-    const categoriesOptions = useAvailableBudgetCategories();
+    const categoriesOptions = useAvailableBudgetCategories(props.budget);
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
 
     const methods = useForm<BudgetFormType>({
-        defaultValues: {
-            description: '',
-            category_id: categoriesOptions[0]?.value,
-            // TODO: there is no period selection at the moment so I am using current month
-            start_date: startOfMonth,
-            end_date: endOfMonth,
-            amount: '',
-        },
+        defaultValues: mapBudgetToForm(props.budget),
         resolver: zodResolver(BudgetFormSchema),
     });
 
@@ -164,12 +164,7 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
     });
 
     useEffect(() => {
-        methods.reset({
-            ...props.budget,
-            amount: String(props.budget.amount),
-            start_date: DateTime.fromISO(props.budget.start_date),
-            end_date: DateTime.fromISO(props.budget.end_date),
-        });
+        methods.reset(mapBudgetToForm(props.budget));
     }, [methods, props.budget]);
 
     return (

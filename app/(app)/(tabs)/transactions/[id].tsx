@@ -50,12 +50,7 @@ export default function EditTransaction() {
     const categories = useGetCategories();
 
     const methods = useForm<TransactionFormType>({
-        defaultValues: {
-            description: null,
-            expense: 'true',
-            category_id: null,
-            transaction_date: DateTime.now(),
-        },
+        defaultValues: mapTransactionToForm(transactionDetails.data!),
         resolver: zodResolver(TransactionFormSchema),
     });
 
