@@ -367,7 +367,7 @@ export default function Tab() {
                         );
                     })}
                 </YGroup>
-                {budgetList.data?.notPlanned.totalSpent && (
+                {budgetList.data?.notPlanned.totalSpent ? (
                     <Card rounded={'$radius.4'} bordered mt={'$4'}>
                         <YStack>
                             <XStack p={'$4'} flex={1} justify={'space-between'} items="center">
@@ -408,7 +408,7 @@ export default function Tab() {
                             </YGroup>
                         </YStack>
                     </Card>
-                )}
+                ) : null}
             </ScrollView>
             <Button onPress={createBudgetSheet.open} icon={Plus}>
                 Add
@@ -422,13 +422,13 @@ export default function Tab() {
             </Sheet>
 
             <Sheet open={editBudgetSheet.isOpen} onOpenChange={editBudgetSheet.setIsOpen}>
-                {editBudgetSheet.budgetToEdit && (
+                {editBudgetSheet.budgetToEdit ? (
                     <EditBudgetForm
                         autoFocus={editBudgetSheet.isOpen}
                         onSubmit={editBudgetSheet.close}
                         budget={editBudgetSheet.budgetToEdit}
                     />
-                )}
+                ) : null}
             </Sheet>
 
             <DeleteBudget
