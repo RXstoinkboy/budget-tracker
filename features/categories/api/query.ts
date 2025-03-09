@@ -3,6 +3,7 @@ import { useMutation, UseMutationOptions, useQuery, useQueryClient } from '@tans
 import { CategoriesWithChildren, CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './types';
 import { formatToCategoryTree, formatTreeToSelectOptions } from './utils';
 import { SelectOption } from '@/components/select-field';
+import { EMPTY_CATEGORY } from '../consts';
 
 export const categoriesKeys = {
     all: ['categories'] as const,
@@ -91,7 +92,7 @@ export const useGetCategories = () => {
             return {
                 tree,
                 list: data,
-                selectOptions,
+                selectOptions: [...selectOptions, EMPTY_CATEGORY],
             };
         },
     });

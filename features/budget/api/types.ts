@@ -5,8 +5,8 @@ export type BudgetDto = {
     id: string;
     amount: number;
     description: string;
-    category_id: string;
-    category: Pick<CategoryDto, 'name' | 'icon' | 'icon_color'>;
+    category_id: string | null;
+    category: Pick<CategoryDto, 'name' | 'icon' | 'icon_color'> | null;
     start_date: string;
     end_date: string;
 };

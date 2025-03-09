@@ -6,7 +6,6 @@ import {
     EnrichedBudget,
     ExtendedTransactionSummary,
     ProcessedBudgetData,
-    TransactionSummary,
     UpdateBudgetDto,
 } from './types';
 import { DateTime } from 'luxon';
@@ -15,6 +14,7 @@ import { CategoryDto } from '@/features/categories/api/types';
 import { categoriesKeys } from '@/features/categories/api/query';
 import { useGetTransactionsSummary } from '@/features/transactions/api/query';
 import { useMemo } from 'react';
+import { EMPTY_CATEGORY } from '@/features/categories/consts';
 
 export const budgetKeys = {
     all: ['budget'] as const,
@@ -98,7 +98,8 @@ export const useCreateBudget = ({
                 budgetKeys.list(DEFAULT_FILTERS),
             );
             const categories = queryClient.getQueryData<CategoryDto[]>(categoriesKeys.list());
-            const category = categories?.find(({ id }) => id === variables.category_id);
+            const category =
+                categories?.find(({ id }) => id === variables.category_id) ?? EMPTY_CATEGORY;
 
             const newBudgetElement = {
                 id: new Date().toString(),

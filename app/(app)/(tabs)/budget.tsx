@@ -14,6 +14,7 @@ import {
 } from '@/features/budget/api/query';
 import { BudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
+import { EMPTY_CATEGORY } from '@/features/categories/api/query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
@@ -40,7 +41,7 @@ const BudgetFormSchema = z.object({
     start_date: z.custom<DateTime>((val) => val instanceof DateTime),
     end_date: z.custom<DateTime>((val) => val instanceof DateTime),
     description: z.string(),
-    category_id: z.string(),
+    category_id: z.string().nullable(),
     amount: z.string().regex(/^[0-9]+$/),
 });
 
@@ -57,14 +58,14 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
             props.onSubmit();
         },
     });
-    const categoriesOptions = useAvailableBudgetCategories();
+    const { options, defaultValue } = useAvailableBudgetCategories();
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
 
     const methods = useForm<BudgetFormType>({
         defaultValues: {
             description: '',
-            category_id: categoriesOptions[0]?.value,
+            category_id: defaultValue,
             // TODO: there is no period selection at the moment so I am using current month
             start_date: startOfMonth,
             end_date: endOfMonth,
@@ -96,7 +97,7 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
                     />
                     <SelectField
                         label="Category"
-                        options={categoriesOptions}
+                        options={options}
                         controller={{
                             name: 'category_id',
                         }}
@@ -144,7 +145,7 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
             props.onSubmit();
         },
     });
-    const categoriesOptions = useAvailableBudgetCategories(props.budget);
+    const { options } = useAvailableBudgetCategories(props.budget);
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
 
@@ -181,7 +182,7 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
                     />
                     <SelectField
                         label="Category"
-                        options={categoriesOptions}
+                        options={options}
                         controller={{
                             name: 'category_id',
                         }}
@@ -253,7 +254,7 @@ export const DeleteBudget = (props: DeleteBudgetProps) => {
             open={props.open}
             onOpenChange={props.onOpenChange}
             onDelete={onDelete}
-            title={`Are you sure you want to delete ${props.budget?.category?.name} budget?`}
+            title={`Are you sure you want to delete ${props.budget?.category?.name ?? EMPTY_CATEGORY.name} budget?`}
         />
     );
 };
@@ -338,7 +339,7 @@ export default function Tab() {
                                 <ListItem
                                     hoverTheme
                                     pressTheme
-                                    title={budget.category?.name}
+                                    title={budget.category?.name ?? EMPTY_CATEGORY.name}
                                     onPress={() => editBudgetSheet.open(budget)}
                                     subTitle={
                                         <XStack gap="$2">
@@ -350,7 +351,8 @@ export default function Tab() {
                                         <XStack>
                                             {icons
                                                 .find((icon) => icon.name === budget.category?.icon)
-                                                ?.icon(budget.category?.icon_color)}
+                                                ?.icon(budget.category?.icon_color) ??
+                                                EMPTY_CATEGORY.left}
                                         </XStack>
                                     }
                                     iconAfter={
@@ -386,7 +388,7 @@ export default function Tab() {
                                         {/* TODO: have to open prefilled form for creating new budget entry */}
                                         <ListItem
                                             hoverTheme
-                                            title={category.name}
+                                            title={category.name ?? EMPTY_CATEGORY.name}
                                             subTitle={
                                                 <Text color={'$color08'}>{category.spent}</Text>
                                             }
@@ -394,7 +396,8 @@ export default function Tab() {
                                                 <XStack>
                                                     {icons
                                                         .find((icon) => icon.name === category.icon)
-                                                        ?.icon(category.icon_color)}
+                                                        ?.icon(category.icon_color) ??
+                                                        EMPTY_CATEGORY.left}
                                                 </XStack>
                                             }
                                             iconAfter={

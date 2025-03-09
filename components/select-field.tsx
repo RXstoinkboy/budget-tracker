@@ -6,9 +6,13 @@ import { ReactNode } from 'react';
 // TODO: do the same with extending tamagui props for other components
 export type SelectOption = FieldValues & {
     name: string;
-    value: string;
+    value: string | null;
     left?: ReactNode;
 };
+
+const EMPTY_VALUE_INTERNAL = 'EMPTY_VALUE_INTERNAL';
+const nullToEmptyInternal = (value: string | null) =>
+    value === null ? EMPTY_VALUE_INTERNAL : value;
 
 type SelectItemProps<T extends FieldValues> = SelectProps & {
     options: SelectOption[];
@@ -31,8 +35,8 @@ const SelectDropdown = <T extends FieldValues>({
             {...controller}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
                 <Select
-                    value={value}
-                    onValueChange={onChange}
+                    value={nullToEmptyInternal(value)}
+                    onValueChange={(v) => onChange(v === EMPTY_VALUE_INTERNAL ? null : v)}
                     disablePreventBodyScroll
                     id={controller.name}
                     {...props}>
@@ -54,7 +58,10 @@ const SelectDropdown = <T extends FieldValues>({
                     <Select.Content>
                         <Select.Viewport>
                             {options.map((option, index) => (
-                                <Select.Item index={index} key={option.value} value={option.value}>
+                                <Select.Item
+                                    index={index}
+                                    key={nullToEmptyInternal(option.value)}
+                                    value={nullToEmptyInternal(option.value)}>
                                     <XStack gap="$2" items="center">
                                         {option.left}
                                         <Select.ItemText>{option.name}</Select.ItemText>

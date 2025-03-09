@@ -37,7 +37,7 @@ export default function CreateTransaction() {
         defaultValues: {
             description: null,
             expense: 'true',
-            category_id: categoriesOptions[0]?.value,
+            category_id: null,
             transaction_date: DateTime.now(),
         },
         resolver: zodResolver(TransactionFormSchema),
