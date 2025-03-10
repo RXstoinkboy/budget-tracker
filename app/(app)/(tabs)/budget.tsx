@@ -12,14 +12,15 @@ import {
     useEditBudget,
     useGetBudgetList,
 } from '@/features/budget/api/query';
-import { BudgetDto } from '@/features/budget/api/types';
+import { BudgetDto, CreateBudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
-import { EMPTY_CATEGORY } from '@/features/categories/api/query';
+import { EMPTY_CATEGORY } from '@/features/categories/consts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
+import { Pressable } from 'react-native';
 import {
     Text,
     ListItem,
@@ -50,6 +51,7 @@ type BudgetFormType = z.infer<typeof BudgetFormSchema>;
 type CreateBudgetFormProps = {
     autoFocus?: boolean;
     onSubmit: () => void;
+    budget?: Partial<CreateBudgetDto>;
 };
 
 export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
@@ -65,11 +67,11 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
     const methods = useForm<BudgetFormType>({
         defaultValues: {
             description: '',
-            category_id: defaultValue,
+            category_id: props.budget?.category_id ?? defaultValue,
             // TODO: there is no period selection at the moment so I am using current month
             start_date: startOfMonth,
             end_date: endOfMonth,
-            amount: '',
+            amount: props.budget?.amount?.toString() ?? '',
         },
         resolver: zodResolver(BudgetFormSchema),
     });
@@ -114,8 +116,13 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
 
 export const useCreateBudgetSheet = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [budgetToCreateTemplate, setBudgetToCreateTemplate] =
+        useState<Partial<CreateBudgetDto> | null>(null);
 
-    const open = () => setIsOpen(true);
+    const open = (budgetToCreate: Partial<CreateBudgetDto> | null = null) => {
+        setBudgetToCreateTemplate(budgetToCreate);
+        setIsOpen(true);
+    };
     const close = () => setIsOpen(false);
 
     return {
@@ -123,6 +130,7 @@ export const useCreateBudgetSheet = () => {
         setIsOpen,
         close,
         open,
+        budgetToCreateTemplate,
     };
 };
 
@@ -402,7 +410,15 @@ export default function Tab() {
                                             }
                                             iconAfter={
                                                 <XStack>
-                                                    <ListPlus />
+                                                    <Pressable
+                                                        onPress={() =>
+                                                            createBudgetSheet.open({
+                                                                category_id: category.category_id,
+                                                                amount: category.spent,
+                                                            })
+                                                        }>
+                                                        <ListPlus />
+                                                    </Pressable>
                                                 </XStack>
                                             }
                                         />
@@ -413,7 +429,7 @@ export default function Tab() {
                     </Card>
                 ) : null}
             </ScrollView>
-            <Button onPress={createBudgetSheet.open} icon={Plus}>
+            <Button onPress={() => createBudgetSheet.open()} icon={Plus}>
                 Add
             </Button>
 
@@ -421,6 +437,7 @@ export default function Tab() {
                 <CreateBudgetForm
                     autoFocus={createBudgetSheet.isOpen}
                     onSubmit={createBudgetSheet.close}
+                    budget={createBudgetSheet.budgetToCreateTemplate ?? undefined}
                 />
             </Sheet>
 
