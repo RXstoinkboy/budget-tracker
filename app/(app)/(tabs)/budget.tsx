@@ -383,9 +383,9 @@ export default function Tab() {
                             <XStack p={'$4'} flex={1} justify={'space-between'} items="center">
                                 <XStack flex={1} items="center">
                                     <Paragraph>Not planned:</Paragraph>
-                                    <Button mx={'$4'} size={'$3'} variant="outlined" icon={Plus}>
+                                    {/* <Button mx={'$4'} size={'$3'} variant="outlined" icon={Plus}>
                                         Add all
-                                    </Button>
+                                    </Button> */}
                                 </XStack>
                                 <Paragraph>{budgetList.data?.notPlanned.totalSpent}</Paragraph>
                             </XStack>
