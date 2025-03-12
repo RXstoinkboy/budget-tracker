@@ -1,4 +1,13 @@
-import { Carrot, House, ShoppingCart, Car, PiggyBank, CircleHelp } from '@tamagui/lucide-icons';
+import {
+    Carrot,
+    House,
+    ShoppingCart,
+    Car,
+    PiggyBank,
+    Circle,
+    CircleHelp,
+    CircleDollarSign,
+} from '@tamagui/lucide-icons';
 
 export const icons = [
     {
@@ -24,5 +33,13 @@ export const icons = [
     {
         name: 'help',
         icon: (color: any) => <CircleHelp color={color} />,
+    },
+    {
+        name: 'circle',
+        icon: (color: any) => <Circle color={color} />,
+    },
+    {
+        name: 'circle-dollar',
+        icon: (color: any) => <CircleDollarSign color={color} />,
     },
 ];

@@ -34,7 +34,9 @@ export default function Categories() {
 
     const newCategories = useMutationState<CreateCategoryDto>({
         filters: { mutationKey: categoriesKeys.create(), status: 'pending' },
-        select: (mutation) => mutation.state.variables as CreateCategoryDto,
+        select: (mutation) => {
+            return mutation.state.variables as CategoryDto;
+        },
     });
     const removedCategoriesIds = useMutationState<CategoryDto['id']>({
         filters: { mutationKey: categoriesKeys.delete(), status: 'pending' },
@@ -42,11 +44,11 @@ export default function Categories() {
     });
     const updatedCategories = useMutationState<UpdateCategoryDto>({
         filters: { mutationKey: categoriesKeys.update(), status: 'pending' },
-        select: (mutation) => mutation.state.variables as UpdateCategoryDto,
+        select: (mutation) => mutation.state.variables as CategoryDto,
     });
 
     return (
-        <YStack gap="$4" p="$2">
+        <YStack gap="$4" p="$2" flex={1}>
             <ScrollView>
                 <YGroup size="$4">
                     {/* render newly created category */}
@@ -56,7 +58,12 @@ export default function Categories() {
                                 <YGroup.Item key={index}>
                                     <CategoryParent
                                         isGhost
-                                        category={{ ...newCategory, id: new Date().toString() }}
+                                        // TODO: replace it with updating cache
+                                        category={{
+                                            ...newCategory,
+                                            id: new Date().toString(),
+                                            default: false,
+                                        }}
                                     />
                                 </YGroup.Item>
                             );
@@ -94,9 +101,11 @@ export default function Categories() {
                                                                     <CategoryChild
                                                                         isGhost
                                                                         parentId={category.id}
+                                                                        // TODO: again the same problem because of not updating cache directly
                                                                         category={{
                                                                             ...newChild,
                                                                             id: new Date().toString(),
+                                                                            default: false,
                                                                         }}
                                                                     />
                                                                 </YGroup.Item>

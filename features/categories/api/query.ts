@@ -92,7 +92,7 @@ export const useGetCategories = () => {
             return {
                 tree,
                 list: data,
-                selectOptions: [...selectOptions, EMPTY_CATEGORY],
+                selectOptions,
             };
         },
     });

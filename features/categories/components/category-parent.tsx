@@ -1,5 +1,5 @@
 import { CirclePlus, Trash } from '@tamagui/lucide-icons';
-import { ListItem, XStack, Text } from 'tamagui';
+import { ListItem, XStack, Text, View } from 'tamagui';
 import { CategoryDto, UpdateCategoryDto } from '../api/types';
 import { icons } from '@/consts/icons';
 import { useMutationState } from '@tanstack/react-query';
@@ -42,7 +42,11 @@ export const CategoryParent = ({
             iconAfter={
                 <XStack gap="$4">
                     <CirclePlus disabled={isLoading} onPress={onCreateSubcategory} />
-                    <Trash disabled={isLoading} onPress={onDelete} />
+                    {category.default ? (
+                        <View width={'$1.5'} />
+                    ) : (
+                        <Trash disabled={isLoading} onPress={onDelete} />
+                    )}
                 </XStack>
             }>
             <XStack onPress={onEdit} flex={1} items="center" gap="$3">

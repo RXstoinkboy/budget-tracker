@@ -1,5 +1,5 @@
 import { Dot, FolderOutput, Trash } from '@tamagui/lucide-icons';
-import { ListItem, XStack, Text } from 'tamagui';
+import { ListItem, XStack, Text, View } from 'tamagui';
 import { CategoryDto, UpdateCategoryDto } from '../api/types';
 import { useMutationState } from '@tanstack/react-query';
 import { categoriesKeys } from '../api/query';
@@ -43,7 +43,11 @@ export const CategoryChild = ({
             iconAfter={
                 <XStack gap="$4">
                     <FolderOutput disabled={isLoading} onPress={onMove} />
-                    <Trash disabled={isLoading} onPress={onDelete} />
+                    {category.default ? (
+                        <View width={'$1.5'} />
+                    ) : (
+                        <Trash disabled={isLoading} onPress={onDelete} />
+                    )}
                 </XStack>
             }>
             <XStack flex={1} items="center" gap="$3" onPress={onEdit}>
