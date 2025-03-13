@@ -21,7 +21,7 @@ export const MoveCategoryForm = (props: EditCategoryFormProps) => {
         },
         resolver: zodResolver(MoveCategoryFormSchema),
     });
-    const categoriesOptions = (categories.data?.selectOptions ?? []).filter((cat) => {
+    const categoriesOptions = (categories.data?.selectOptions.all ?? []).filter((cat) => {
         return cat.value !== props.category.parent_id && cat.meta?.isParent;
     });
 

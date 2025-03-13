@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/button';
 import { TransactionDto } from '@/features/transactions/api/types';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useGetCategories } from '@/features/categories/api/query';
 
 // TODO: reuse between this and create
@@ -49,9 +49,28 @@ export default function EditTransaction() {
     const transactionDetails = useGetTransactionDetails(idString);
     const categories = useGetCategories();
 
+    const getDefaultCategoryId = useCallback(
+        (type: string = 'expense') => {
+            const category = categories.data?.list.find((cat) => cat.default && cat.type === type);
+            return category?.id;
+        },
+        [categories.data?.list],
+    );
+
     const methods = useForm<TransactionFormType>({
         defaultValues: mapTransactionToForm(transactionDetails.data!),
         resolver: zodResolver(TransactionFormSchema),
+    });
+    const expense = methods.watch('expense');
+    const type = expense === 'true' ? 'expense' : 'income';
+    const categoriesOptions = (categories.data?.selectOptions.all ?? []).map((opt) => {
+        return {
+            ...opt,
+            meta: {
+                ...opt.meta,
+                hidden: opt.meta.type !== type,
+            },
+        };
     });
 
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
@@ -76,6 +95,14 @@ export default function EditTransaction() {
             methods.reset(mapTransactionToForm(transactionDetails.data));
         }
     }, [transactionDetails.data, methods]);
+
+    useEffect(() => {
+        methods.resetField('category_id', {
+            defaultValue: getDefaultCategoryId(type) ?? null,
+        });
+    }, [getDefaultCategoryId, methods, type]);
+
+    // TODO: add the code automatically update category when changing expense
 
     if (transactionDetails.isLoading) {
         return <Spinner size={'large'} />;
@@ -104,7 +131,7 @@ export default function EditTransaction() {
                         <DatePicker label="Date" controller={{ name: 'transaction_date' }} />
                         <SelectField
                             label="Category"
-                            options={categories.data?.selectOptions ?? []}
+                            options={categoriesOptions}
                             placeholder="Select category"
                             controller={{
                                 name: 'category_id',

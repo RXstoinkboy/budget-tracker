@@ -8,7 +8,7 @@ export const useAvailableBudgetCategories = (currentBudget?: BudgetDto) => {
     const selectedOptions = budgetList.data?.budgets.map((budget) => budget.category_id) || [];
 
     const options =
-        data?.selectOptions.filter((option) => {
+        data?.selectOptions.all.filter((option) => {
             if (currentBudget?.category_id === option.value) {
                 return true;
             }
