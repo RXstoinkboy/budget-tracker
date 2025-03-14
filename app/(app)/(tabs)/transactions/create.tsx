@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/button';
 import { useGetCategories } from '@/features/categories/api/query';
-import { useCallback, useEffect } from 'react';
+import { useCategoriesOptions } from '@/features/transactions/hooks/use-categories-options';
 
 const expenseItems: RadioGroupOption[] = [
     { label: 'Expense', value: 'true' },
@@ -32,34 +32,17 @@ type TransactionFormType = z.infer<typeof TransactionFormSchema>;
 
 export default function CreateTransaction() {
     const { data } = useGetCategories();
-    const getDefaultCategoryId = useCallback(
-        (type: string = 'expense') => {
-            const category = data?.list.find((cat) => cat.default && cat.type === type);
-            return category?.id;
-        },
-        [data?.list],
-    );
+    const { categoriesOptions, updateCategoriesData, getDefaultCategoryId } =
+        useCategoriesOptions();
 
     const methods = useForm<TransactionFormType>({
         defaultValues: {
             description: null,
             expense: 'true',
-            category_id: getDefaultCategoryId(),
+            category_id: getDefaultCategoryId(data?.list ?? []),
             transaction_date: DateTime.now(),
         },
         resolver: zodResolver(TransactionFormSchema),
-    });
-
-    const expense = methods.watch('expense');
-    const type = expense === 'true' ? 'expense' : 'income';
-    const categoriesOptions = (data?.selectOptions.all ?? []).map((opt) => {
-        return {
-            ...opt,
-            meta: {
-                ...opt.meta,
-                hidden: opt.meta.type !== type,
-            },
-        };
     });
 
     const navigateToTransactionsList = () => router.push('/(app)/(tabs)/transactions');
@@ -77,12 +60,6 @@ export default function CreateTransaction() {
             transaction_date: data.transaction_date.toISODate() || DateTime.now().toISODate(),
         });
     });
-
-    useEffect(() => {
-        methods.resetField('category_id', {
-            defaultValue: getDefaultCategoryId(type) ?? null,
-        });
-    }, [getDefaultCategoryId, methods, type]);
 
     // TODO: when in a styling phase then make the whole form a reusable component and resue it across create and edit
     return (
@@ -104,7 +81,11 @@ export default function CreateTransaction() {
                             type="number"
                             controller={{ name: 'amount', rules: { required: true } }}
                         />
-                        <RadioGroup options={expenseItems} controller={{ name: 'expense' }} />
+                        <RadioGroup
+                            options={expenseItems}
+                            controller={{ name: 'expense' }}
+                            onValueChange={updateCategoriesData(methods.resetField)}
+                        />
                         <DatePicker label="Date" controller={{ name: 'transaction_date' }} />
                         <SelectField
                             label="Category"

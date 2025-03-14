@@ -28,13 +28,13 @@ type RadioGroupProps<T extends FieldValues> = TamaguiRadioGroupProps & {
     label?: string;
     options: RadioGroupOption[];
     controller: Omit<ControllerProps<T>, 'render'>;
-    onChange?: (value: string) => void;
 };
 
 export const RadioGroup = <T extends FieldValues>({
     controller,
     label,
     options,
+    onValueChange,
     ...props
 }: RadioGroupProps<T>) => {
     const { control } = useFormContext<T>();
@@ -51,7 +51,7 @@ export const RadioGroup = <T extends FieldValues>({
                             value={value}
                             onValueChange={(val) => {
                                 onChange(val);
-                                props.onChange?.(val);
+                                onValueChange?.(val);
                             }}
                             {...props}>
                             <XStack gap="$6">
