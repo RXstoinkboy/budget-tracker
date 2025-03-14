@@ -8,14 +8,14 @@ export const useAvailableBudgetCategories = (currentBudget?: BudgetDto) => {
     const selectedOptions = budgetList.data?.budgets.map((budget) => budget.category_id) || [];
 
     const options =
-        data?.selectOptions.all.filter((option) => {
+        data?.selectOptions.expense.filter((option) => {
             if (currentBudget?.category_id === option.value) {
                 return true;
             }
             return !selectedOptions.includes(option.value);
         }) || [];
 
-    const defaultValue = options.some((option) => option.value === null) ? null : options[0].value;
+    const defaultValue = options.find((option) => option.meta.default)?.value ?? options[0]?.value;
 
     return {
         options,

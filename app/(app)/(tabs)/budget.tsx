@@ -14,7 +14,6 @@ import {
 } from '@/features/budget/api/query';
 import { BudgetDto, CreateBudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
-import { EMPTY_CATEGORY } from '@/features/categories/consts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
@@ -262,7 +261,7 @@ export const DeleteBudget = (props: DeleteBudgetProps) => {
             open={props.open}
             onOpenChange={props.onOpenChange}
             onDelete={onDelete}
-            title={`Are you sure you want to delete ${props.budget?.category?.name ?? EMPTY_CATEGORY.name} budget?`}
+            title={`Are you sure you want to delete ${props.budget?.category?.name} budget?`}
         />
     );
 };
@@ -347,7 +346,7 @@ export default function Tab() {
                                 <ListItem
                                     hoverTheme
                                     pressTheme
-                                    title={budget.category?.name ?? EMPTY_CATEGORY.name}
+                                    title={budget.category?.name}
                                     onPress={() => editBudgetSheet.open(budget)}
                                     subTitle={
                                         <XStack gap="$2">
@@ -359,8 +358,7 @@ export default function Tab() {
                                         <XStack>
                                             {icons
                                                 .find((icon) => icon.name === budget.category?.icon)
-                                                ?.icon(budget.category?.icon_color) ??
-                                                EMPTY_CATEGORY.left}
+                                                ?.icon(budget.category?.icon_color)}
                                         </XStack>
                                     }
                                     iconAfter={
@@ -396,7 +394,7 @@ export default function Tab() {
                                         {/* TODO: have to open prefilled form for creating new budget entry */}
                                         <ListItem
                                             hoverTheme
-                                            title={category.name ?? EMPTY_CATEGORY.name}
+                                            title={category.name}
                                             subTitle={
                                                 <Text color={'$color08'}>{category.spent}</Text>
                                             }
@@ -404,8 +402,7 @@ export default function Tab() {
                                                 <XStack>
                                                     {icons
                                                         .find((icon) => icon.name === category.icon)
-                                                        ?.icon(category.icon_color) ??
-                                                        EMPTY_CATEGORY.left}
+                                                        ?.icon(category.icon_color)}
                                                 </XStack>
                                             }
                                             iconAfter={

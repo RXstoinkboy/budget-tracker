@@ -8,8 +8,6 @@ import {
     UpdateCategoryDto,
 } from './types';
 import { formatToCategoryTree, formatTreeToSelectOptions } from './utils';
-import { SelectOption } from '@/components/select-field';
-import { EMPTY_CATEGORY } from '../consts';
 
 export const categoriesKeys = {
     all: ['categories'] as const,

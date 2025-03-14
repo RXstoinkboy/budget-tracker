@@ -14,7 +14,6 @@ import { CategoryDto } from '@/features/categories/api/types';
 import { categoriesKeys } from '@/features/categories/api/query';
 import { useGetTransactionsSummary } from '@/features/transactions/api/query';
 import { useMemo } from 'react';
-import { EMPTY_CATEGORY } from '@/features/categories/consts';
 
 export const budgetKeys = {
     all: ['budget'] as const,
@@ -98,8 +97,7 @@ export const useCreateBudget = ({
                 budgetKeys.list(DEFAULT_FILTERS),
             );
             const categories = queryClient.getQueryData<CategoryDto[]>(categoriesKeys.list());
-            const category =
-                categories?.find(({ id }) => id === variables.category_id) ?? EMPTY_CATEGORY;
+            const category = categories?.find(({ id }) => id === variables.category_id);
 
             const newBudgetElement = {
                 id: new Date().toString(),
