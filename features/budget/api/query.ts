@@ -227,8 +227,6 @@ export const useDeleteBudget = () => {
 };
 
 export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
-    // TODO: better to use ensureQuery instead of useQuery to get data from cache
-    // it will also avoid cyclic dependencies
     const { data: transactionSummaries } = useGetTransactionsSummary(filters);
     const { data: budgets, ...rest } = useQuery({
         queryKey: budgetKeys.list(filters),

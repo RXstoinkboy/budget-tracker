@@ -62,11 +62,12 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
     const { options, defaultValue } = useAvailableBudgetCategories();
     const startOfMonth = DateTime.now().startOf('month');
     const endOfMonth = DateTime.now().endOf('month');
+    const isAddUncategorized = props.budget?.category_id === null;
 
     const methods = useForm<BudgetFormType>({
         defaultValues: {
             description: '',
-            category_id: props.budget?.category_id ?? defaultValue,
+            category_id: isAddUncategorized ? null : (props.budget?.category_id ?? defaultValue),
             // TODO: there is no period selection at the moment so I am using current month
             start_date: startOfMonth,
             end_date: endOfMonth,
@@ -96,13 +97,15 @@ export const CreateBudgetForm = (props: CreateBudgetFormProps) => {
                         autoFocus={props.autoFocus}
                         controller={{ name: 'amount', rules: { required: true } }}
                     />
-                    <SelectField
-                        label="Category"
-                        options={options}
-                        controller={{
-                            name: 'category_id',
-                        }}
-                    />
+                    {isAddUncategorized ? null : (
+                        <SelectField
+                            label="Category"
+                            options={options}
+                            controller={{
+                                name: 'category_id',
+                            }}
+                        />
+                    )}
                     <TextAreaField label="Description" controller={{ name: 'description' }} />
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
                         <Button>Add to list</Button>
@@ -381,9 +384,19 @@ export default function Tab() {
                             <XStack p={'$4'} flex={1} justify={'space-between'} items="center">
                                 <XStack flex={1} items="center">
                                     <Paragraph>Not planned:</Paragraph>
-                                    {/* <Button mx={'$4'} size={'$3'} variant="outlined" icon={Plus}>
+                                    <Button
+                                        mx={'$4'}
+                                        size={'$3'}
+                                        variant="outlined"
+                                        icon={Plus}
+                                        onPress={() =>
+                                            createBudgetSheet.open({
+                                                category_id: null,
+                                                amount: budgetList.data?.notPlanned.totalSpent,
+                                            })
+                                        }>
                                         Add all
-                                    </Button> */}
+                                    </Button>
                                 </XStack>
                                 <Paragraph>{budgetList.data?.notPlanned.totalSpent}</Paragraph>
                             </XStack>
@@ -391,7 +404,6 @@ export default function Tab() {
                             <YGroup>
                                 {budgetList.data?.notPlanned.categories.map((category) => (
                                     <YGroup.Item key={category.category_id}>
-                                        {/* TODO: have to open prefilled form for creating new budget entry */}
                                         <ListItem
                                             hoverTheme
                                             title={category.name}
