@@ -55,6 +55,8 @@ export interface BudgetTotals {
 
 // Interface for not planned data
 export interface NotPlannedData {
+    planned: number;
+    budget: EnrichedBudget | null;
     totalSpent: number;
     categories: UnplannedCategory[];
 }
@@ -63,7 +65,7 @@ export interface NotPlannedData {
 export interface ProcessedBudgetData {
     budgets: EnrichedBudget[];
     total: BudgetTotals;
-    notPlanned: NotPlannedData;
+    uncategorized: NotPlannedData;
 }
 
 // Query result interface

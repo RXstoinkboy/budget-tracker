@@ -244,7 +244,9 @@ export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
                 spentInPlanned: 0,
                 spentAll: 0,
             },
-            notPlanned: {
+            uncategorized: {
+                planned: 0,
+                budget: null,
                 totalSpent: 0,
                 categories: [],
             },
@@ -256,24 +258,37 @@ export const useGetBudgetList = (filters = DEFAULT_FILTERS) => {
         );
 
         // Process budgets and calculate totals
-        result.budgets = budgets.map((budget): EnrichedBudget => {
+        result.budgets = budgets.reduce((acc: EnrichedBudget[], budget: EnrichedBudget) => {
+            // filter out budgets that category_id === null so they are not not displayed with other planned budgets
+            // they should be part of the uncategorized section
+            if (budget.category_id === null) {
+                result.uncategorized.planned += budget.amount;
+                result.uncategorized.budget = budget;
+                result.total.planned += budget.amount;
+
+                return acc;
+            }
+
             const spent = transactionMap.get(budget.category_id) || 0;
             result.total.planned += budget.amount;
             result.total.spentInPlanned += spent;
 
-            return {
-                ...budget,
-                spent,
-            };
-        });
+            return [
+                ...acc,
+                {
+                    ...budget,
+                    spent,
+                },
+            ];
+        }, []);
 
         // Process transactions without budgets
         transactionSummaries.forEach((summary: ExtendedTransactionSummary) => {
             result.total.spentAll += summary.total_amount;
 
             if (!budgets.some((budget) => budget.category_id === summary.category_id)) {
-                result.notPlanned.totalSpent += summary.total_amount;
-                result.notPlanned.categories.push({
+                result.uncategorized.totalSpent += summary.total_amount;
+                result.uncategorized.categories.push({
                     category_id: summary.category_id,
                     name: summary.name,
                     icon: summary.icon,

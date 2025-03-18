@@ -15,7 +15,7 @@ import {
 import { BudgetDto, CreateBudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus } from '@tamagui/lucide-icons';
+import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus, X } from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -264,7 +264,11 @@ export const DeleteBudget = (props: DeleteBudgetProps) => {
             open={props.open}
             onOpenChange={props.onOpenChange}
             onDelete={onDelete}
-            title={`Are you sure you want to delete ${props.budget?.category?.name} budget?`}
+            title={`Are you sure you want to delete ${
+                props.budget?.category?.name
+                    ? `${props.budget?.category?.name} budget`
+                    : 'plan for rest of expenses'
+            } ?`}
         />
     );
 };
@@ -339,70 +343,112 @@ export default function Tab() {
                         <Paragraph>{budgetList.data?.total.spentAll}</Paragraph>
                     </XStack>
                 </YStack>
-                <YGroup rounded={'$radius.4'} bordered>
-                    {budgetList.data?.budgets.map((budget, index) => {
-                        const color = getColor(budget.spent, budget.amount);
+                <YStack mt={'$4'}>
+                    <Text px={'$2'}>Budget plan:</Text>
+                    <YGroup rounded={'$radius.4'} bordered>
+                        {budgetList.data?.budgets.map((budget, index) => {
+                            const color = getColor(budget.spent, budget.amount);
 
-                        return (
-                            <YGroup.Item key={budget.id}>
-                                {index ? <Separator /> : null}
-                                <ListItem
-                                    hoverTheme
-                                    pressTheme
-                                    title={budget.category?.name}
-                                    onPress={() => editBudgetSheet.open(budget)}
-                                    subTitle={
-                                        <XStack gap="$2">
-                                            <Text color={color}>{budget.spent}</Text>
-                                            <Text color={'$color08'}>of {budget.amount}</Text>
-                                        </XStack>
-                                    }
-                                    icon={
-                                        <XStack>
-                                            {icons
-                                                .find((icon) => icon.name === budget.category?.icon)
-                                                ?.icon(budget.category?.icon_color)}
-                                        </XStack>
-                                    }
-                                    iconAfter={
-                                        <XStack gap="$4">
-                                            <Trash
-                                                onPress={() =>
-                                                    deleteBudgetConfirmation.open(budget)
-                                                }
-                                            />
-                                        </XStack>
-                                    }
-                                />
-                            </YGroup.Item>
-                        );
-                    })}
-                </YGroup>
-                {budgetList.data?.notPlanned.totalSpent ? (
+                            return (
+                                <YGroup.Item key={budget.id}>
+                                    {index ? <Separator /> : null}
+                                    <ListItem
+                                        hoverTheme
+                                        pressTheme
+                                        title={budget.category?.name}
+                                        onPress={() => editBudgetSheet.open(budget)}
+                                        subTitle={
+                                            <XStack gap="$2">
+                                                <Text color={color}>{budget.spent}</Text>
+                                                <Text color={'$color08'}>of {budget.amount}</Text>
+                                            </XStack>
+                                        }
+                                        icon={
+                                            <XStack>
+                                                {icons
+                                                    .find(
+                                                        (icon) =>
+                                                            icon.name === budget.category?.icon,
+                                                    )
+                                                    ?.icon(budget.category?.icon_color)}
+                                            </XStack>
+                                        }
+                                        iconAfter={
+                                            <XStack gap="$4">
+                                                <Trash
+                                                    onPress={() =>
+                                                        deleteBudgetConfirmation.open(budget)
+                                                    }
+                                                />
+                                            </XStack>
+                                        }
+                                    />
+                                </YGroup.Item>
+                            );
+                        })}
+                    </YGroup>
+                </YStack>
+
+                {budgetList.data?.uncategorized.totalSpent ? (
                     <Card rounded={'$radius.4'} bordered mt={'$4'}>
                         <YStack>
-                            <XStack p={'$4'} flex={1} justify={'space-between'} items="center">
-                                <XStack flex={1} items="center">
-                                    <Paragraph>Not planned:</Paragraph>
-                                    <Button
-                                        mx={'$4'}
-                                        size={'$3'}
-                                        variant="outlined"
-                                        icon={Plus}
-                                        onPress={() =>
-                                            createBudgetSheet.open({
-                                                category_id: null,
-                                                amount: budgetList.data?.notPlanned.totalSpent,
-                                            })
-                                        }>
-                                        Add all
-                                    </Button>
+                            <YStack p={'$4'} gap={'$2'}>
+                                <XStack flex={1} justify={'space-between'} items="center">
+                                    <Paragraph>Rest of expenses:</Paragraph>
+                                    <XStack>
+                                        <Paragraph
+                                            color={getColor(
+                                                budgetList.data?.uncategorized.totalSpent,
+                                                budgetList.data?.uncategorized.planned,
+                                            )}>
+                                            {budgetList.data?.uncategorized.totalSpent}
+                                        </Paragraph>
+                                        {budgetList.data?.uncategorized.planned ? (
+                                            <Paragraph>
+                                                {' '}
+                                                of {budgetList.data?.uncategorized.planned} planned
+                                            </Paragraph>
+                                        ) : null}
+                                    </XStack>
                                 </XStack>
-                                <Paragraph>{budgetList.data?.notPlanned.totalSpent}</Paragraph>
-                            </XStack>
+                                <XStack flex={1}>
+                                    {!budgetList.data.uncategorized.planned ? (
+                                        <Button
+                                            mx={'$4'}
+                                            size={'$3'}
+                                            flex={1}
+                                            height={'$2'}
+                                            icon={Plus}
+                                            onPress={() =>
+                                                createBudgetSheet.open({
+                                                    category_id: null,
+                                                    amount: budgetList.data?.uncategorized
+                                                        .totalSpent,
+                                                })
+                                            }>
+                                            Plan rest
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            size={'$3'}
+                                            flex={1}
+                                            height={'$2'}
+                                            icon={X}
+                                            onPress={() => {
+                                                const budget =
+                                                    budgetList.data?.uncategorized.budget;
+                                                if (budget) {
+                                                    deleteBudgetConfirmation.open(budget);
+                                                }
+                                            }}>
+                                            Clear plan
+                                        </Button>
+                                    )}
+                                </XStack>
+                            </YStack>
                             <Separator />
                             <YGroup>
-                                {budgetList.data?.notPlanned.categories.map((category) => (
+                                {budgetList.data?.uncategorized.categories.map((category) => (
                                     <YGroup.Item key={category.category_id}>
                                         <ListItem
                                             hoverTheme
