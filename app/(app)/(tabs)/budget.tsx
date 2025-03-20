@@ -15,7 +15,16 @@ import {
 import { BudgetDto, CreateBudgetDto } from '@/features/budget/api/types';
 import { useAvailableBudgetCategories } from '@/features/budget/hooks/use-available-budget-categories';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Minus, ChevronLeft, ChevronRight, Plus, Trash, ListPlus, X } from '@tamagui/lucide-icons';
+import {
+    Minus,
+    ChevronLeft,
+    ChevronRight,
+    Plus,
+    Trash,
+    ListPlus,
+    X,
+    Pencil,
+} from '@tamagui/lucide-icons';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -140,6 +149,7 @@ type EditBudgetFormProps = {
     autoFocus?: boolean;
     onSubmit: () => void;
     budget: BudgetDto;
+    categorySelectHidden: boolean;
 };
 
 const mapBudgetToForm = (budget: BudgetDto) => ({
@@ -190,13 +200,15 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
                         autoFocus={props.autoFocus}
                         controller={{ name: 'amount', rules: { required: true } }}
                     />
-                    <SelectField
-                        label="Category"
-                        options={options}
-                        controller={{
-                            name: 'category_id',
-                        }}
-                    />
+                    {props.categorySelectHidden ? null : (
+                        <SelectField
+                            label="Category"
+                            options={options}
+                            controller={{
+                                name: 'category_id',
+                            }}
+                        />
+                    )}
                     <TextAreaField label="Description" controller={{ name: 'description' }} />
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
                         <Button>Save changes</Button>
@@ -210,10 +222,12 @@ export const EditBudgetForm = (props: EditBudgetFormProps) => {
 export const useEditBudgetSheet = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [budgetToEdit, setBudgetToEdit] = useState<BudgetDto | null>(null);
+    const [categorySelectHidden, setCategorySelectHidden] = useState(false);
 
-    const open = (budget: BudgetDto) => {
+    const open = (budget: BudgetDto, hideCategorySelect = false) => {
         setBudgetToEdit(budget);
         setIsOpen(true);
+        setCategorySelectHidden(hideCategorySelect);
     };
     const close = () => setIsOpen(false);
 
@@ -223,6 +237,7 @@ export const useEditBudgetSheet = () => {
         close,
         open,
         budgetToEdit,
+        categorySelectHidden,
     };
 };
 
@@ -324,24 +339,29 @@ export default function Tab() {
             </XGroup>
             <ScrollView flex={1}>
                 <YStack p="$2" gap={'$2'}>
-                    <XStack flex={1} justify="space-between">
+                    <XStack flex={1} justify="space-between" items="center" gap={'$4'}>
                         <Paragraph>Planned expenses:</Paragraph>
+                        <Separator borderColor={'$color3'} borderStyle="dashed" />
+
                         <Paragraph>{budgetList.data?.total.planned}</Paragraph>
                     </XStack>
-                    <XStack flex={1} justify="space-between">
+                    <XStack flex={1} justify="space-between" items="center" gap={'$4'}>
                         <Paragraph>Spent in planned:</Paragraph>
+                        <Separator borderColor={'$color3'} borderStyle="dashed" />
+                        <Paragraph>{budgetList.data?.total.spentInPlanned}</Paragraph>
+                    </XStack>
+                    <XStack flex={1} justify="space-between" items="center" gap={'$4'}>
+                        <Paragraph>Total spent:</Paragraph>
+                        <Separator borderColor={'$color3'} borderStyle="dashed" />
                         <Paragraph
                             color={getColor(
-                                budgetList.data?.total.spentInPlanned ?? 0,
+                                budgetList.data?.total.spentAll ?? 0,
                                 budgetList.data?.total.planned ?? 0,
                             )}>
-                            {budgetList.data?.total.spentInPlanned}
+                            {budgetList.data?.total.spentAll}
                         </Paragraph>
                     </XStack>
-                    <XStack flex={1} justify="space-between">
-                        <Paragraph>Total spent:</Paragraph>
-                        <Paragraph>{budgetList.data?.total.spentAll}</Paragraph>
-                    </XStack>
+                    <Separator />
                 </YStack>
                 <YStack mt={'$4'}>
                     <Text px={'$2'}>Budget plan:</Text>
@@ -429,20 +449,36 @@ export default function Tab() {
                                             Plan rest
                                         </Button>
                                     ) : (
-                                        <Button
-                                            size={'$3'}
-                                            flex={1}
-                                            height={'$2'}
-                                            icon={X}
-                                            onPress={() => {
-                                                const budget =
-                                                    budgetList.data?.uncategorized.budget;
-                                                if (budget) {
-                                                    deleteBudgetConfirmation.open(budget);
-                                                }
-                                            }}>
-                                            Clear plan
-                                        </Button>
+                                        <XStack flex={1} gap={'$2'}>
+                                            <Button
+                                                size={'$3'}
+                                                flex={1}
+                                                height={'$2'}
+                                                icon={X}
+                                                onPress={() => {
+                                                    const budget =
+                                                        budgetList.data?.uncategorized.budget;
+                                                    if (budget) {
+                                                        deleteBudgetConfirmation.open(budget);
+                                                    }
+                                                }}>
+                                                Clear
+                                            </Button>
+                                            <Button
+                                                size={'$3'}
+                                                flex={1}
+                                                height={'$2'}
+                                                icon={Pencil}
+                                                onPress={() => {
+                                                    const budget =
+                                                        budgetList.data?.uncategorized.budget;
+                                                    if (budget) {
+                                                        editBudgetSheet.open(budget, true);
+                                                    }
+                                                }}>
+                                                Edit
+                                            </Button>
+                                        </XStack>
                                     )}
                                 </XStack>
                             </YStack>
@@ -502,6 +538,7 @@ export default function Tab() {
                         autoFocus={editBudgetSheet.isOpen}
                         onSubmit={editBudgetSheet.close}
                         budget={editBudgetSheet.budgetToEdit}
+                        categorySelectHidden={editBudgetSheet.categorySelectHidden}
                     />
                 ) : null}
             </Sheet>
