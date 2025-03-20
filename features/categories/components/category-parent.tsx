@@ -41,11 +41,13 @@ export const CategoryParent = ({
             disabled={isLoading}
             iconAfter={
                 <XStack gap="$4">
-                    <CirclePlus disabled={isLoading} onPress={onCreateSubcategory} />
                     {category.default ? (
-                        <View width={'$1.5'} />
+                        <Text color="$color8">Default</Text>
                     ) : (
-                        <Trash disabled={isLoading} onPress={onDelete} />
+                        <>
+                            <CirclePlus disabled={isLoading} onPress={onCreateSubcategory} />
+                            <Trash disabled={isLoading} onPress={onDelete} />
+                        </>
                     )}
                 </XStack>
             }>

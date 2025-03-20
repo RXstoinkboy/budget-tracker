@@ -74,13 +74,15 @@ export const EditCategoryForm = (props: EditCategoryFormProps) => {
                                 controller={{ name: 'icon', rules: { required: true } }}
                             />
                             <ColorPicker label="Icon color" controller={{ name: 'icon_color' }} />
-                            <RadioGroup
-                                options={[
-                                    { label: 'Expense', value: 'expense' },
-                                    { label: 'Income', value: 'income' },
-                                ]}
-                                controller={{ name: 'type' }}
-                            />
+                            {props.category.default ? null : (
+                                <RadioGroup
+                                    options={[
+                                        { label: 'Expense', value: 'expense' },
+                                        { label: 'Income', value: 'income' },
+                                    ]}
+                                    controller={{ name: 'type' }}
+                                />
+                            )}
                         </>
                     )}
                     <Form.Trigger asChild disabled={!methods.formState.isValid}>
