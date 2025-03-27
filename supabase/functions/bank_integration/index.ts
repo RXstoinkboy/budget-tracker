@@ -8,6 +8,38 @@
 import '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 
+// Add these types at the top of the file
+type GoCardlessSession = {
+    accessToken: string;
+    refreshToken: string;
+    accessExpires: Date;
+    refreshExpires: Date;
+};
+
+type BankAccount = {
+    id: string;
+    balance: number;
+    currency: string;
+    accountType: string;
+    accountNumber: string;
+};
+
+// Add at the top level, before any functions
+const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') || '',
+    Deno.env.get('SUPABASE_ANON_KEY') || '',
+    {
+        auth: {
+            persistSession: false,
+        },
+    },
+);
+
+// Replace hardcoded values with environment variables
+const GOCARDLESS_API_ENDPOINT = Deno.env.get('GOCARDLESS_API_ENDPOINT') || '';
+const GOCARDLESS_API_SECRET_ID = Deno.env.get('GOCARDLESS_API_SECRET_ID') || '';
+const GOCARDLESS_API_SECRET_KEY = Deno.env.get('GOCARDLESS_API_SECRET_KEY') || '';
+
 const authenticateUser = async (req) => {
     try {
         const authHeader = req.headers.get('Authorization');
@@ -25,8 +57,6 @@ const authenticateUser = async (req) => {
             data: { user },
             error,
         } = await supabase.auth.getUser(token);
-
-        userId = user.id;
 
         if (error) {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -48,7 +78,7 @@ const authenticateUser = async (req) => {
     }
 };
 
-const getToken = async () => {
+const getToken = async (userId: string) => {
     try {
         const res = await Deno.fetch(
             `${GOCARDLESS_API_KEY}token/new/`,
@@ -64,75 +94,99 @@ const getToken = async () => {
                 },
             },
         );
-        // TODO: store access token and refresh token in DB
-        // or not really because it has to be verified each time to make sure that my app has access to gocardless API
-        // can I assign it like that in memory? I think I should be able to do it
-        accessToken = res.data.access;
-        refreshToken = res.data.refresh;
-        accessExpires = res.data.access_expires;
-        refreshExpires = res.data.refresh_expires;
+        // Save the session to database
+        await saveGoCardlessSession(userId, {
+            accessToken: res.data.access,
+            refreshToken: res.data.refresh,
+            accessExpires: res.data.access_expires,
+            refreshExpires: res.data.refresh_expires,
+        });
+
+        return {
+            accessToken: res.data.access,
+            refreshToken: res.data.refresh,
+            accessExpires: res.data.access_expires,
+            refreshExpires: res.data.refresh_expires,
+        };
     } catch (e) {
         console.error(e);
         throw new Error('Failed to get new token');
     }
 };
 
-const ensureToken = async () => {
-    // TODO: I should also ensure that accessToken is not expired
-    // TODO: if accessToken is expired then I should check for refresh token and use it to get new access token
-    if (!accessToken) {
-        await getToken();
+const getGoGardlessSession = async (userId: string): Promise<GoCardlessSession | null> => {
+    try {
+        const session = await fetchSavedGoCardlessSession(userId);
+        const validationResult = validateGoCardlessSession(session);
+
+        if (validationResult === null) {
+            return await getToken(userId);
+        }
+        if (validationResult.refreshToken) {
+            return await refreshGoCardlessSession(userId, validationResult.refreshToken);
+        }
+        if (validationResult.accessToken) {
+            return session;
+        }
+        return null;
+    } catch (e) {
+        console.error(e);
+        throw new Error('Failed to get GoCardless session');
     }
 };
 
+const ensureToken = async (userId: string): Promise<string> => {
+    const session = await getGoGardlessSession(userId);
+    if (!session?.accessToken) {
+        throw new Error('Failed to get access token');
+    }
+    return session.accessToken;
+};
+
+// Update getInstitutionsList to use the correct endpoint
 const getInstitutionsList = async (countryCode: string) => {
     try {
         if (!countryCode) {
             throw new Error('Country code is required');
         }
-        await ensureToken();
+        const accessToken = await ensureToken('GB');
 
-        const res = await Deno.fetch(`institutions/?country=${countryCode}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                accept: 'application/json',
-                Authorization: `Bearer ${accessToken}`,
+        const res = await Deno.fetch(
+            `${GOCARDLESS_API_ENDPOINT}institutions/?country=${countryCode}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                    accept: 'application/json',
+                },
             },
-        });
-        return res.data;
+        );
+        return await res.json();
     } catch (e) {
         console.error(e);
         throw new Error('Failed to get institutions');
     }
 };
 
-async function validateGoCardlessSession(userId: string) {
-    /**
-     * TODO:
-     * now validate the session
-     * firest validate access_expires
-     * if it is still valid then return the session
-     * if no then check refresh_expires
-     * if it is still valid then use it to refresh the session and then returen the session
-     * if it is not valid then delete the session, get new access token and create new session
-     * */
-
-    if (session.length === 0) {
+async function validateGoCardlessSession(session: any) {
+    if (!session?.data || session.data.length === 0) {
         return null;
     }
-    const sessionData = session[0];
+    const sessionData = session.data[0];
+    const now = new Date();
+    const accessExpires = new Date(sessionData.access_expires);
+    const refreshExpires = new Date(sessionData.refresh_expires);
 
-    if (sessionData.access_expires > new Date()) {
+    if (accessExpires > now) {
         return {
             accessToken: sessionData.access_token,
         };
     }
-    if (sessionData.refresh_expires > new Date()) {
+    if (refreshExpires > now) {
         return {
             refreshToken: sessionData.refresh_token,
         };
     }
-
     return null;
 }
 
@@ -142,35 +196,31 @@ async function fetchSavedGoCardlessSession(userId: string) {
     return session;
 }
 
-async function saveGoCardlessSession(userId: string, session: any) {
+async function saveGoCardlessSession(userId: string, session: GoCardlessSession) {
     await supabase.from('gocardless_sessions').insert([
         {
             user_id: userId,
             access_token: session.accessToken,
             refresh_token: session.refreshToken,
-            access_expires: session.expiresAt,
+            access_expires: session.accessExpires,
             refresh_expires: session.refreshExpires,
         },
     ]);
 }
 
-async function updateGoCardlessSession(userId: string, session: any) {
+async function updateGoCardlessSession(userId: string, session: GoCardlessSession) {
     await supabase
         .from('gocardless_sessions')
         .update({
             access_token: session.accessToken,
             refresh_token: session.refreshToken,
-            access_expires: session.expiresAt,
+            access_expires: session.accessExpires,
             refresh_expires: session.refreshExpires,
         })
         .eq('user_id', userId);
 }
 
-async function deleteGoCardlessSession(userId: string) {
-    await supabase.from('gocardless_sessions').delete().eq('user_id', userId);
-}
-
-async function refreshGoCardlessSession(refreshToken: string) {
+async function refreshGoCardlessSession(userId: string, refreshToken: string) {
     try {
         const res = await Deno.fetch(
             `${GOCARDLESS_API_ENDPOINT}token/refresh/`,
@@ -187,19 +237,14 @@ async function refreshGoCardlessSession(refreshToken: string) {
         );
         console.log('refresh go cardless access token', res.data);
 
-        accessToken = res.data.access;
-        accessExpires = res.data.access_expires;
+        const session = await getToken(userId);
 
         await updateGoCardlessSession(userId, {
             ...res.data,
-            refreshToken,
-            refreshExpires,
+            ...session,
         });
 
-        return {
-            accessToken,
-            accessExpires,
-        };
+        return session;
     } catch (error) {
         console.error(error);
         new Response(JSON.stringify({ error: 'Failed to refresh GoCardless session' }), {
@@ -209,100 +254,87 @@ async function refreshGoCardlessSession(refreshToken: string) {
     }
 }
 
-const getGoGardlessSession = async (userId: string) => {
+// Add new functions to handle bank account operations
+async function getBankAccounts(userId: string): Promise<BankAccount[]> {
     try {
-        const session = await fetchSavedGoCardlessSession(userId);
-        // TODO: this is used in couple of places. Maybe I don't want to store it in memory?
-        accessToken = session.access_token;
-        accessExpires = session.access_expires;
-        refreshToken = session.refresh_token;
-        refreshExpires = session.refresh_expires;
-
-        const validationResult = validateGoCardlessSession(session);
-
-        if (validationResult === null) {
-            await getToken();
-        }
-        if (validationResult.refreshToken) {
-            const refreshedSession = await refreshGoCardlessSession(validationResult.refreshToken);
-
-            return {
-                ...session,
-                ...refreshedSession,
-            };
-        }
-        if (validationResult.accessToken) {
-            return session;
-        }
-    } catch (e) {
-        console.error(e);
-        throw new Error('Failed to get GoCardless session');
+        const accessToken = await ensureToken(userId);
+        const res = await fetch(`${GOCARDLESS_API_ENDPOINT}accounts/`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching bank accounts:', error);
+        throw new Error('Failed to fetch bank accounts');
     }
-};
+}
 
 async function handleGetTransactions(accountId: string) {
-    // Implement logic to fetch transactions for a given accountId
-    console.log(`Fetching transactions for account: ${accountId}`);
-    // Replace this with your actual implementation
-    return { transactions: [] };
-}
-
-async function handleConnectBank(bankDetails: any) {
-    // Implement the logic to connect a bank
-    console.log(`Connecting bank with details: ${JSON.stringify(bankDetails)}`);
-    // Replace this with your actual implementation
-    return { success: true, message: 'Bank connected successfully' };
-}
-
-Deno.serve(async (req) => {
-    console.log('Hello from Functions!');
-    // TODO: take care of this in memory variables. THey should not be used at all...
-    let accessToken: string | undefined;
-    let refreshToken: string | undefined;
-    let accessExpires: number | undefined;
-    let refreshExpires: number | undefined;
-    let userId = string | undefined;
-
-    // TODO: all of these have to be moved to supabase secret
-    const GOCARDLESS_API_ENDPOINT = 'https://bankaccountdata.gocardless.com/api/v2/';
-    const GOCARDLESS_API_SECRET_ID = 'dea3d755-7975-4c76-8bee-51d823e31e90';
-    const GOCARDLESS_API_SECRET_KEY =
-        'd0951459c809e3e85980b1f9d0b42f32a5b3bdfd49a8db91738aff5d80c5f9fdb140a6d262caa56bf175d983b5bd2180b0e84f4dd35c0b92b2f2154f33e673fd'; /// TODO: move to supabase secret
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
-
-    console.log({
-        GOCARDLESS_API_ENDPOINT,
-        GOCARDLESS_API_SECRET_ID,
-        GOCARDLESS_API_SECRET_KEY,
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
-    });
-
-    // this is my supabase client to perform all kinds of interactions with supabase (auth/db etc)
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            persistSession: false,
-        },
-    });
-
-    await authenticateUser(req);
-
-    // Fetch the GoCardless session details from your Supabase table
-    const goCardlessSession = await getGoGardlessSession(user.id);
-
-    if (!goCardlessSession) {
-        return new Response(
-            JSON.stringify({ error: 'Error connecting to bank connection service' }),
-            { status: 400 },
-        );
+    try {
+        const accessToken = await ensureToken('GB');
+        const res = await fetch(`${GOCARDLESS_API_ENDPOINT}accounts/${accountId}/transactions`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        return await res.json();
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        throw new Error('Failed to fetch transactions');
     }
+}
 
-    // TODO: agree to fetch transactions/balance/account data for the accounts connected for the user
-    // TODO: prepare an actualy response with requested data by the user: transactions/balance/account data
-    return new Response(JSON.stringify(data), {
-        headers: { 'Content-Type': 'application/json' },
-    });
+// Update the main serve function to handle different endpoints
+Deno.serve(async (req) => {
+    try {
+        const user = await authenticateUser(req);
+        const url = new URL(req.url);
+        const path = url.pathname.split('/').filter(Boolean);
+
+        // Initialize GoCardless session
+        await getGoGardlessSession(user.id);
+
+        // Handle different endpoints
+        switch (path[0]) {
+            case 'institutions':
+                const countryCode = url.searchParams.get('country') || 'GB';
+                const institutions = await getInstitutionsList(countryCode);
+                return new Response(JSON.stringify(institutions), {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+            case 'accounts':
+                const accounts = await getBankAccounts(user.id);
+                return new Response(JSON.stringify(accounts), {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+            case 'transactions':
+                const accountId = path[1];
+                if (!accountId) {
+                    throw new Error('Account ID is required');
+                }
+                const transactions = await handleGetTransactions(accountId);
+                return new Response(JSON.stringify(transactions), {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+            default:
+                return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
+                    status: 404,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
 });
 
 /* To invoke locally:
