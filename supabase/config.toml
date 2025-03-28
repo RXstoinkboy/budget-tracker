@@ -307,6 +307,7 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
+[functions]
 [functions.bank_integration]
 enabled = true
 verify_jwt = true
@@ -317,3 +318,6 @@ entrypoint = "./functions/bank_integration/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/bank_integration/*.html" ]
+[functions.bank_integration.environment]
+SUPABASE_URL = "https://fxyncnqhyjlvtnrvgwsn.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4eW5jbnFoeWpsdnRucnZnd3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc2NzI4OTksImV4cCI6MjA1MzI0ODg5OX0.yBu3On9LdFp1afmURSKyX2TtZG8dEB9dkd4W5b6rnBA"

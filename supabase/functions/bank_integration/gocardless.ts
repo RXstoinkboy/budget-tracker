@@ -7,7 +7,7 @@ const GOCARDLESS_API_SECRET_KEY = Deno.env.get('GOCARDLESS_API_SECRET_KEY') || '
 
 export async function getToken(userId: string): Promise<GoCardlessSession> {
     try {
-        const res = await fetch(`${GOCARDLESS_API_ENDPOINT}token/new/`, {
+        const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/token/new/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export async function getToken(userId: string): Promise<GoCardlessSession> {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getBankAccounts(userId: string, accessToken: string): Promise<BankAccount[]> {
-    const res = await fetch(`${GOCARDLESS_API_ENDPOINT}accounts/`, {
+    const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/accounts/`, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export async function getBankAccounts(userId: string, accessToken: string): Prom
 }
 
 export async function getTransactions(accountId: string, accessToken: string) {
-    const res = await fetch(`${GOCARDLESS_API_ENDPOINT}accounts/${accountId}/transactions`, {
+    const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/accounts/${accountId}/transactions`, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
