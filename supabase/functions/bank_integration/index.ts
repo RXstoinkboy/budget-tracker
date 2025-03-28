@@ -57,6 +57,36 @@ Deno.serve(async (req) => {
                     headers: { 'Content-Type': 'application/json' },
                 });
 
+            case 'link':
+                if (req.method !== 'POST') {
+                    throw new Error('Method not allowed');
+                }
+
+                const body = await req.json();
+                const { institutionId, redirectUrl } = body;
+
+                if (!institutionId || !redirectUrl) {
+                    throw new Error('Institution ID and redirect URL are required');
+                }
+
+                // Create end user agreement
+                const agreement = await gocardless.createEndUserAgreement(
+                    institutionId,
+                    goCardlessSession.accessToken,
+                );
+
+                // Create requisition with the agreement
+                const requisition = await gocardless.createRequisition(
+                    institutionId,
+                    agreement.id,
+                    redirectUrl,
+                    goCardlessSession.accessToken,
+                );
+
+                return new Response(JSON.stringify(requisition), {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
             default:
                 return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
                     status: 404,

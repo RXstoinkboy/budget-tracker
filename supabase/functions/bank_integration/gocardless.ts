@@ -1,4 +1,4 @@
-import { GoCardlessSession, BankAccount } from './types.ts';
+import { GoCardlessSession, BankAccount, EndUserAgreement, Requisition } from './types.ts';
 import * as session from './session.ts';
 
 const GOCARDLESS_API_ENDPOINT = Deno.env.get('GOCARDLESS_API_ENDPOINT') || '';
@@ -53,4 +53,58 @@ export async function getTransactions(accountId: string, accessToken: string) {
         },
     });
     return await res.json();
+}
+
+export async function createEndUserAgreement(
+    institutionId: string,
+    accessToken: string,
+): Promise<EndUserAgreement> {
+    const response = await fetch(`${GOCARDLESS_API_ENDPOINT}/agreements/enduser/`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            accept: 'application/json',
+        },
+        body: JSON.stringify({
+            institution_id: institutionId,
+            max_historical_days: 180,
+            access_valid_for_days: 90,
+            access_scope: ['balances', 'details', 'transactions'],
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to create end user agreement');
+    }
+
+    return response.json();
+}
+
+export async function createRequisition(
+    institutionId: string,
+    agreementId: string,
+    redirectUrl: string,
+    accessToken: string,
+): Promise<Requisition> {
+    const response = await fetch(`${GOCARDLESS_API_ENDPOINT}/requisitions/`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            accept: 'application/json',
+        },
+        body: JSON.stringify({
+            redirect: redirectUrl,
+            institution_id: institutionId,
+            agreement: agreementId,
+            user_language: 'EN',
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to create requisition');
+    }
+
+    return response.json();
 }
