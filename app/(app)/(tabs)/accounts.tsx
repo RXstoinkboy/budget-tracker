@@ -1,7 +1,7 @@
 import { Image, ListItem, YGroup, YStack } from 'tamagui';
 import { Button } from '@/components/button';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Linking } from 'react-native';
+import { supabase } from '@/utils/supabase';
 
 // TODO: just some mock data - replace with query
 // actually I don't even save connected accounts anywhere in db
@@ -28,8 +28,6 @@ type AccountDto = {
 };
 
 const ConnectAccountButton = () => {
-    const supabase = createClientComponentClient();
-
     const handleConnectAccount = async () => {
         try {
             const { data, error } = await supabase.functions.invoke('bank_integration', {

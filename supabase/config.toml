@@ -52,9 +52,8 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
-# Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
 
 [realtime]
@@ -86,7 +85,7 @@ port = 54324
 # sender_name = "Admin"
 
 [storage]
-enabled = true
+enabled = false
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
@@ -312,3 +311,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 verify_jwt = true
 import_map = "./functions/bank_integration/deno.json"
 entrypoint = "./functions/bank_integration/index.ts"
+
+[functions.bank_integration.environment]
+GOCARDLESS_API_ENDPOINT = "https://bankaccountdata.gocardless.com/api/v2"
+GOCARDLESS_API_SECRET_ID = "your-secret-id"
+GOCARDLESS_API_SECRET_KEY = "your-secret-key"

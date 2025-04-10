@@ -5,7 +5,7 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import '@supabase/supabase-js';
+// import '@supabase/supabase-js';
 import { authenticateUser } from './auth.ts';
 import * as gocardless from './gocardless.ts';
 import * as session from './session.ts';
