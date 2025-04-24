@@ -311,8 +311,3 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 verify_jwt = true
 import_map = "./functions/bank_integration/deno.json"
 entrypoint = "./functions/bank_integration/index.ts"
-
-[functions.bank_integration.environment]
-GOCARDLESS_API_ENDPOINT = "https://bankaccountdata.gocardless.com/api/v2"
-GOCARDLESS_API_SECRET_ID = "your-secret-id"
-GOCARDLESS_API_SECRET_KEY = "your-secret-key"

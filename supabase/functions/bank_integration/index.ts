@@ -15,19 +15,41 @@ Deno.serve(async (req) => {
     try {
         const user = await authenticateUser(req);
         const url = new URL(req.url);
-        const path = url.pathname.split('/').filter(Boolean);
+
+        // Remove leading and trailing slashes and split
+        const fullPath = url.pathname.replace(/^\/|\/$/g, '').split('/');
+
+        // In production, the path might include 'functions/v1/bank_integration'
+        // Find the index of 'bank_integration' if it exists in the path
+        const bankIntegrationIndex = fullPath.indexOf('bank_integration');
+
+        // Get the actual endpoint path (everything after 'bank_integration')
+        const path =
+            bankIntegrationIndex >= 0 ? fullPath.slice(bankIntegrationIndex + 1) : fullPath;
+
+        console.log('Full PATH', fullPath);
+        console.log('Processed PATH', path);
+        console.log('URL', url);
 
         // Initialize GoCardless session
-        const goCardlessSession = await session.getGoGardlessSession(user.id);
-        if (!goCardlessSession?.accessToken) {
-            throw new Error('Failed to initialize GoCardless session');
+        let goCardlessSession = await session.getGocardlessSession(user.id);
+        if (!goCardlessSession) {
+            goCardlessSession = await gocardless.getToken(user.id);
         }
 
-        // Handle different endpoints
-        switch (path[0]) {
+        const bufferTimeMs = 2 * 60 * 1000;
+        if (goCardlessSession.accessExpires < Date.now() + bufferTimeMs) {
+            goCardlessSession = await gocardless.refreshToken(
+                user.id,
+                goCardlessSession.refreshToken,
+            );
+        }
+
+        // Handle different endpoints based on the first part of the processed path
+        switch (path[0] || '') {
             case 'institutions':
                 const countryCode = url.searchParams.get('country') || 'GB';
-                const institutions = await gocardless.getInstitutionsList(
+                const institutions = await gocardless.getInstitutions(
                     countryCode,
                     goCardlessSession.accessToken,
                 );
@@ -87,6 +109,12 @@ Deno.serve(async (req) => {
                     headers: { 'Content-Type': 'application/json' },
                 });
 
+            // Handle empty path (root endpoint)
+            case '':
+                return new Response(JSON.stringify({ message: 'Bank Integration API' }), {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
             default:
                 return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
                     status: 404,
@@ -107,7 +135,7 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/gocardless-integration' \
+  curl -i --location --request GET 'http://127.0.0.1:54321/functions/v1/bank_integration/institutions' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"name":"Functions"}'

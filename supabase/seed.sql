@@ -1,0 +1,2 @@
+-- This is an empty seed file
+-- It's here just to satisfy the Supabase CLI 

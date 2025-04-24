@@ -38,3 +38,6 @@ yarn-error.*
 app-example
 android/
 .tamagui/
+
+.env
+supabase/functions/.env

@@ -26,11 +26,49 @@ export async function getToken(userId: string): Promise<GoCardlessSession> {
             refreshExpires: data.refresh_expires,
         };
 
+        console.log('SESSION DATA', sessionData);
+
         await session.saveGoCardlessSession(userId, sessionData);
         return sessionData;
     } catch (e) {
         console.error(e);
         throw new Error('Failed to get new token');
+    }
+}
+
+export async function refreshToken(
+    userId: string,
+    refreshToken: string,
+): Promise<GoCardlessSession> {
+    try {
+        const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/token/refresh/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                accept: 'application/json',
+            },
+            body: JSON.stringify({
+                refresh: refreshToken,
+            }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to refresh token: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        const sessionData = {
+            accessToken: data.access,
+            refreshToken: data.refresh,
+            accessExpires: data.access_expires,
+            refreshExpires: data.refresh_expires,
+        };
+
+        await session.saveGoCardlessSession(userId, sessionData);
+        return sessionData;
+    } catch (e) {
+        console.error(e);
+        throw new Error('Failed to refresh token');
     }
 }
 
@@ -104,6 +142,25 @@ export async function createRequisition(
 
     if (!response.ok) {
         throw new Error('Failed to create requisition');
+    }
+
+    return response.json();
+}
+
+export async function getInstitutions(countryCode: string, accessToken: string) {
+    const response = await fetch(
+        `${GOCARDLESS_API_ENDPOINT}/institutions/?country=${countryCode}`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+                accept: 'application/json',
+            },
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch institutions: ${response.statusText}`);
     }
 
     return response.json();

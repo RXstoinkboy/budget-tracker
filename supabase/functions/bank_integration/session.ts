@@ -56,3 +56,14 @@ export async function updateGoCardlessSession(userId: string, session: GoCardles
         })
         .eq('user_id', userId);
 }
+
+export async function getGocardlessSession(userId: string): Promise<GoCardlessSession | null> {
+    const savedSession = await fetchSavedGoCardlessSession(userId);
+    const validatedSession = await validateGoCardlessSession(savedSession);
+
+    if (!validatedSession) {
+        return null;
+    }
+
+    return validatedSession;
+}
