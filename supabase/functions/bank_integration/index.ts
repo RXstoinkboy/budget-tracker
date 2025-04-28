@@ -7,11 +7,24 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 // import '@supabase/supabase-js';
 import { authenticateUser } from './auth.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 import * as gocardless from './gocardless.ts';
 import * as session from './session.ts';
 
 // Update the main serve function to handle different endpoints
 Deno.serve(async (req) => {
+    // Always handle OPTIONS requests first
+    if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS request');
+        // return new Response(null, {
+        //     headers: corsHeaders,
+        //     status: 204,
+        // });
+        if (req.method === 'OPTIONS') {
+            return new Response('ok', { headers: corsHeaders });
+        }
+    }
+
     try {
         const user = await authenticateUser(req);
         const url = new URL(req.url);
@@ -26,10 +39,6 @@ Deno.serve(async (req) => {
         // Get the actual endpoint path (everything after 'bank_integration')
         const path =
             bankIntegrationIndex >= 0 ? fullPath.slice(bankIntegrationIndex + 1) : fullPath;
-
-        console.log('Full PATH', fullPath);
-        console.log('Processed PATH', path);
-        console.log('URL', url);
 
         // Initialize GoCardless session
         let goCardlessSession = await session.getGocardlessSession(user.id);
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
                     goCardlessSession.accessToken,
                 );
                 return new Response(JSON.stringify(institutions), {
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
 
             case 'accounts':
@@ -63,7 +72,7 @@ Deno.serve(async (req) => {
                     goCardlessSession.accessToken,
                 );
                 return new Response(JSON.stringify(accounts), {
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
 
             case 'transactions':
@@ -76,7 +85,7 @@ Deno.serve(async (req) => {
                     goCardlessSession.accessToken,
                 );
                 return new Response(JSON.stringify(transactions), {
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
 
             case 'link':
@@ -106,26 +115,26 @@ Deno.serve(async (req) => {
                 );
 
                 return new Response(JSON.stringify(requisition), {
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
 
             // Handle empty path (root endpoint)
             case '':
                 return new Response(JSON.stringify({ message: 'Bank Integration API' }), {
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
 
             default:
                 return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
                     status: 404,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 });
         }
     } catch (error) {
         console.error('Error:', error);
         return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
+            status: error.message.includes('Unauthorized') ? 401 : 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
 });

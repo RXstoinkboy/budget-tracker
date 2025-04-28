@@ -30,9 +30,17 @@ type AccountDto = {
 const ConnectAccountButton = () => {
     const handleConnectAccount = async () => {
         try {
-            const { data, error } = await supabase.functions.invoke('bank_integration', {
-                body: { action: 'initiate_connection' },
-            });
+            const { data, error } = await supabase.functions.invoke(
+                // TODO: it should be deynamic based on user location or custom settings
+                'bank_integration/institutions?country=PL',
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                },
+            );
 
             if (error) {
                 console.error('Error initiating bank connection:', error);
@@ -40,16 +48,16 @@ const ConnectAccountButton = () => {
             }
 
             // Open the redirect URL in the device's browser
-            if (data?.redirectUrl) {
-                await Linking.openURL(data.redirectUrl);
-            }
+            // if (data?.redirectUrl) {
+            //     await Linking.openURL(data.redirectUrl);
+            // }
         } catch (error) {
             console.error('Failed to connect account:', error);
         }
     };
 
     if (accounts.length === 0) {
-        return <Button onPress={handleConnectAccount}>Connect first account</Button>;
+        return <Button onPress={handleConnectAccount}>Connect first account :)</Button>;
     }
     return <Button onPress={handleConnectAccount}>Connect another account</Button>;
 };

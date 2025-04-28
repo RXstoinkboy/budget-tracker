@@ -18,6 +18,7 @@ export const authenticateUser = async (req: Request) => {
                 status: 401,
                 headers: { 'Content-Type': 'application/json' },
             });
+            // throw new Error('Unauthorized: No authorization header');
         }
 
         const token = authHeader.split(' ')[1];
@@ -31,6 +32,7 @@ export const authenticateUser = async (req: Request) => {
                 status: 401,
                 headers: { 'Content-Type': 'application/json' },
             });
+            // throw new Error('Unauthorized: Invalid token');
         }
 
         return user;
