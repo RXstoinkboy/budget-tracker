@@ -1,112 +1,61 @@
-import { Image, ListItem, YGroup, YStack } from 'tamagui';
-import { Button } from '@/components/button';
-import { Linking } from 'react-native';
-import { supabase } from '@/utils/supabase';
-
-// TODO: just some mock data - replace with query
-// actually I don't even save connected accounts anywhere in db
-// I should do it so when they are connected then I can show them here and easily fetch data for them
-const accounts = [
-    // {
-    //     id: '1',
-    //     name: 'Bank of America',
-    //     balance: 1000,
-    //     currency: 'USD',
-    //     type: 'checking',
-    //     iconUrl: ''https://picsum.photos/200/300'',
-    // },
-];
-
-// this might be changed in the future. It is just an initial DTO proposition
-type AccountDto = {
-    id: string;
-    name: string;
-    balance: number;
-    currency: string;
-    type: string;
-    iconUrl: string;
-};
-
-const ConnectAccountButton = () => {
-    const handleConnectAccount = async () => {
-        try {
-            const { data, error } = await supabase.functions.invoke(
-                // TODO: it should be deynamic based on user location or custom settings
-                'bank_integration/institutions?country=PL',
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                    },
-                },
-            );
-
-            if (error) {
-                console.error('Error initiating bank connection:', error);
-                return;
-            }
-
-            // Open the redirect URL in the device's browser
-            // if (data?.redirectUrl) {
-            //     await Linking.openURL(data.redirectUrl);
-            // }
-        } catch (error) {
-            console.error('Failed to connect account:', error);
-        }
-    };
-
-    if (accounts.length === 0) {
-        return <Button onPress={handleConnectAccount}>Connect first account :)</Button>;
-    }
-    return <Button onPress={handleConnectAccount}>Connect another account</Button>;
-};
-
-type ConnectedAccountProps = {
-    account: AccountDto;
-};
-
-const ConnectedAccount = ({ account }: ConnectedAccountProps) => {
-    const onAccountPress = () => {
-        console.log('account pressed');
-    };
-    return (
-        <YGroup.Item>
-            <ListItem
-                hoverTheme
-                pressTheme
-                title={account.name}
-                onPress={onAccountPress}
-                subTitle={account.type}
-                icon={
-                    <Image
-                        source={{
-                            uri: 'https://picsum.photos/200/300',
-                            width: 80,
-                            height: 80,
-                        }}
-                    />
-                }
-            />
-        </YGroup.Item>
-    );
-};
+import { useGetInstitutions } from '@/features/integrations/api/query';
+import { YStack, H6, YGroup, Text, ScrollView, ListItem, XStack, Image, useTheme, getTokens } from 'tamagui';
 
 const ConnectedAccounts = () => {
     return (
-        <YGroup rounded={'$radius.4'} bordered>
-            {accounts.map((account) => (
-                <ConnectedAccount account={account} />
-            ))}
-        </YGroup>
+        <H6>No accounts connected yet</H6>
     );
 };
 
+const InstitutionsList = () => {
+    // TODO: get country code from user (profile settings/ locale or something else)
+    // TODO: there should also be the option to change country in search
+    const { data: institutions, error } = useGetInstitutions('PL');
+
+    if (error) {
+        return <Text>Error loading institutions</Text>;
+    }
+
+    if (institutions?.length === 0) {
+        return <Text>No institutions found</Text>;
+    }
+
+    return (
+        <YGroup bordered size="$4">
+            {institutions?.map((institution) => (
+                <YGroup.Item key={institution.id}>
+                    <ListItem
+                    borderColor="$color4"
+                    hoverStyle={{
+                        bg: '$backgroundHover',
+                        cursor: 'pointer',
+                    }}
+                    borderBottomWidth={1}
+                    // opacity={isLoading ? 0.6 : 1}
+                    // disabled={isLoading}``
+                    >
+                        <XStack items={'center'} gap="$2">
+                            <Image source={{
+                                uri: institution.logo,
+                                width:getTokens().size.$2.val,
+                                height: getTokens().size.$2.val
+                            }} />
+                            <Text>{institution.name}</Text>
+                        </XStack>
+                    </ListItem>
+                </YGroup.Item>
+            ))}
+        </YGroup>
+    )
+}
+
 export default function Tab() {
     return (
-        <YStack>
-            <ConnectAccountButton />
-            <ConnectedAccounts />
-        </YStack>
+        <ScrollView>
+            <YStack>
+                <ConnectedAccounts />
+                <InstitutionsList />
+            </YStack>
+        </ScrollView>
     );
 }
