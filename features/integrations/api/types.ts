@@ -7,3 +7,7 @@ export type InstitutionDto = {
     name: string;
     transaction_total_days: string;
 }
+
+export type LinkWithInstitutionParams = {
+    institutionId: string; redirectUrl: string
+}

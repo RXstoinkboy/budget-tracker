@@ -1,9 +1,18 @@
 export type GoCardlessSession = {
     accessToken: string;
     refreshToken: string;
-    accessExpires: Date;
-    refreshExpires: Date;
+    accessExpires: string;
+    refreshExpires: string;
 };
+
+export type GoCardlessSessionDto = {
+    id: string;
+    user_id: string;
+    access_token: string;
+    refresh_token: string;
+    access_expires: string;
+    refresh_expires: string;
+}
 
 export type BankAccount = {
     id: string;

@@ -1,11 +1,12 @@
 import { GoCardlessSession, BankAccount, EndUserAgreement, Requisition } from './types.ts';
 import * as session from './session.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const GOCARDLESS_API_ENDPOINT = Deno.env.get('GOCARDLESS_API_ENDPOINT') || '';
 const GOCARDLESS_API_SECRET_ID = Deno.env.get('GOCARDLESS_API_SECRET_ID') || '';
 const GOCARDLESS_API_SECRET_KEY = Deno.env.get('GOCARDLESS_API_SECRET_KEY') || '';
 
-export async function getToken(userId: string): Promise<GoCardlessSession> {
+export async function getToken(userId: string, supabaseClient: SupabaseClient): Promise<GoCardlessSession> {
     try {
         const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/token/new/`, {
             method: 'POST',
@@ -19,16 +20,17 @@ export async function getToken(userId: string): Promise<GoCardlessSession> {
             }),
         });
         const data = await res.json();
+        const now = new Date();
         const sessionData = {
             accessToken: data.access,
             refreshToken: data.refresh,
-            accessExpires: data.access_expires,
-            refreshExpires: data.refresh_expires,
+            accessExpires: new Date(now.getTime() + data.access_expires * 1000).toISOString(),
+            refreshExpires: new Date(now.getTime() + data.refresh_expires * 1000).toISOString(),
         };
 
-        console.log('SESSION DATA', sessionData);
+        console.log('===> new token: ', sessionData)
 
-        await session.saveGoCardlessSession(userId, sessionData);
+        await session.saveGoCardlessSession(userId, sessionData, supabaseClient);
         return sessionData;
     } catch (e) {
         console.error(e);
@@ -38,7 +40,8 @@ export async function getToken(userId: string): Promise<GoCardlessSession> {
 
 export async function refreshToken(
     userId: string,
-    refreshToken: string,
+    existingSession: GoCardlessSession,
+    supabaseClient: SupabaseClient
 ): Promise<GoCardlessSession> {
     try {
         const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/token/refresh/`, {
@@ -48,7 +51,7 @@ export async function refreshToken(
                 accept: 'application/json',
             },
             body: JSON.stringify({
-                refresh: refreshToken,
+                refresh: existingSession.refreshToken,
             }),
         });
 
@@ -57,14 +60,17 @@ export async function refreshToken(
         }
 
         const data = await res.json();
+        const now = new Date();
         const sessionData = {
             accessToken: data.access,
-            refreshToken: data.refresh,
-            accessExpires: data.access_expires,
-            refreshExpires: data.refresh_expires,
+            refreshToken: existingSession.refreshToken,
+            accessExpires: new Date(now.getTime() + data.access_expires * 1000).toISOString(),
+            refreshExpires: existingSession.refreshExpires,
         };
 
-        await session.saveGoCardlessSession(userId, sessionData);
+        console.log('===>>> refresh teken: ', sessionData)
+
+        await session.saveGoCardlessSession(userId, sessionData, supabaseClient);
         return sessionData;
     } catch (e) {
         console.error(e);
@@ -113,18 +119,28 @@ export async function createEndUserAgreement(
     });
 
     if (!response.ok) {
-        throw new Error('Failed to create end user agreement');
+        throw new Error(`Failed to create end user agreement: ${JSON.stringify(response)}`);
     }
 
     return response.json();
 }
 
 export async function createRequisition(
-    institutionId: string,
-    agreementId: string,
-    redirectUrl: string,
-    accessToken: string,
-): Promise<Requisition> {
+    {
+        userId,
+        institutionId,
+        agreementId,
+        redirectUrl,
+        accessToken,
+    }: {
+        userId: string;
+        institutionId: string;
+        agreementId?: string;
+        redirectUrl: string;
+        accessToken: string;
+    },
+    supabaseClient: SupabaseClient,
+): Promise<{ requisition: Requisition; data: any }> {
     const response = await fetch(`${GOCARDLESS_API_ENDPOINT}/requisitions/`, {
         method: 'POST',
         headers: {
@@ -144,7 +160,22 @@ export async function createRequisition(
         throw new Error('Failed to create requisition');
     }
 
-    return response.json();
+    const requisition = await response.json();
+
+    
+    const {data, error} = await supabaseClient.from('requisitions').insert({
+        requisition_id: requisition.id,
+        institution_id: institutionId,
+        user_id: userId,
+    });
+
+    if (error) {
+        throw error
+    }
+
+    return {
+        requisition, data
+    };
 }
 
 export async function getInstitutions(countryCode: string, accessToken: string) {

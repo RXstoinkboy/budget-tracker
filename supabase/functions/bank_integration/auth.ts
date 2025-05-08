@@ -1,43 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') || '',
-    Deno.env.get('SUPABASE_ANON_KEY') || '',
-    {
-        auth: {
-            persistSession: false,
-        },
-    },
-);
-
-export const authenticateUser = async (req: Request) => {
-    try {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-            // throw new Error('Unauthorized: No authorization header');
-        }
-
-        const token = authHeader.split(' ')[1];
-        const {
-            data: { user },
-            error,
-        } = await supabase.auth.getUser(token);
-
-        if (error || !user) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-            // throw new Error('Unauthorized: Invalid token');
-        }
-
-        return user;
-    } catch (error) {
-        console.error('Authentication error: ', error);
-        throw error;
+export const getAuthToken = (req: Request): string => {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        throw new Error('Unauthorized');
     }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        throw new Error('Invalid token format');
+    }
+
+    return token;
+};
+
+export const getUser = async (token: string, supabaseClient: SupabaseClient) => {
+    const {
+        data: { user },
+        error,
+    } = await supabaseClient.auth.getUser(token);
+
+    if (error || !user) {
+        throw new Error('Unauthorized');
+    }
+
+    return user;
 };

@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Linking from 'expo-linking';
 
 // router
 import { Slot } from 'expo-router';
@@ -20,6 +21,20 @@ if (Platform.OS === 'web') {
 }
 
 SplashScreen.preventAutoHideAsync();
+
+// Configure deep linking
+const linking = {
+    prefixes: ['budgettracker://', 'https://budgettracker.app'],
+    config: {
+        screens: {
+            '(app)': {
+                screens: {
+                    accounts: 'accounts',
+                },
+            },
+        },
+    },
+};
 
 export default function App() {
     const [loaded] = useFonts({
@@ -49,19 +64,15 @@ function RootLayout() {
     useInitiateAuth();
 
     return (
-        <TamaguiProvider
-            config={tamaguiConfig}
-            defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                    <YStack flex={1} bg="$background">
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <QueryClientProvider>
+                <TamaguiProvider config={tamaguiConfig}>
+                    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                         <Slot />
-                    </YStack>
-                    {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="+not-found" /> */}
-                    <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-                </GestureHandlerRootView>
-            </ThemeProvider>
-        </TamaguiProvider>
+                    </ThemeProvider>
+                </TamaguiProvider>
+            </QueryClientProvider>
+        </GestureHandlerRootView>
     );
 }

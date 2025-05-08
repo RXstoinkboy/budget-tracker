@@ -1,40 +1,42 @@
-import { createClient } from '@supabase/supabase-js';
-import { GoCardlessSession } from './types.ts';
+import { GoCardlessSession, GoCardlessSessionDto } from './types.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') || '',
-    Deno.env.get('SUPABASE_ANON_KEY') || '',
-    {
-        auth: {
-            persistSession: false,
-        },
-    },
-);
-
-export async function validateGoCardlessSession(session: any) {
-    if (!session?.data || session.data.length === 0) {
+export function validateGoCardlessSession(session: GoCardlessSessionDto) {
+    if (!session) {
         return null;
     }
-    const sessionData = session.data[0];
+    const sessionData = session;
     const now = new Date();
     const accessExpires = new Date(sessionData.access_expires);
     const refreshExpires = new Date(sessionData.refresh_expires);
 
-    if (accessExpires > now) {
-        return { accessToken: sessionData.access_token };
+    if (accessExpires > now || refreshExpires > now) {
+        return {
+            accessToken: sessionData.access_token,
+            refreshToken: sessionData.refresh_token,
+            accessExpires: sessionData.access_expires,
+            refreshExpires: sessionData.refresh_expires
+        };
     }
-    if (refreshExpires > now) {
-        return { refreshToken: sessionData.refresh_token };
-    }
+    
     return null;
 }
 
-export async function fetchSavedGoCardlessSession(userId: string) {
-    return await supabase.from('gocardless_sessions').select('*').eq('user_id', userId);
+export async function fetchSavedGoCardlessSession(userId: string, supabaseClient: SupabaseClient) {
+        const { data, error } = await supabaseClient.from('gocardless_sessions').select('*').eq('user_id', userId);
+        console.log('===> fetchSavedGoCardlessSession data: ', data)
+        if (error) {
+            console.error('Error fetching GoCardless session:', error);
+            throw error;
+        }
+        return data[0] as GoCardlessSessionDto;
 }
 
-export async function saveGoCardlessSession(userId: string, session: GoCardlessSession) {
-    await supabase.from('gocardless_sessions').insert([
+export async function saveGoCardlessSession(userId: string, session: GoCardlessSession, supabaseClient: SupabaseClient) {
+    console.log('Saving GoCardless session for user:', userId);
+    console.log('Session data:', session);
+    
+    const { data, error } = await supabaseClient.from('gocardless_sessions').upsert([
         {
             user_id: userId,
             access_token: session.accessToken,
@@ -43,10 +45,18 @@ export async function saveGoCardlessSession(userId: string, session: GoCardlessS
             refresh_expires: session.refreshExpires,
         },
     ]);
+
+    if (error) {
+        console.error('Error saving GoCardless session:', error);
+        throw error;
+    }
+
+    console.log('Successfully saved session:', data);
+    return data;
 }
 
-export async function updateGoCardlessSession(userId: string, session: GoCardlessSession) {
-    await supabase
+export async function updateGoCardlessSession(userId: string, session: GoCardlessSession, supabaseClient: SupabaseClient) {
+    await supabaseClient
         .from('gocardless_sessions')
         .update({
             access_token: session.accessToken,
@@ -57,13 +67,15 @@ export async function updateGoCardlessSession(userId: string, session: GoCardles
         .eq('user_id', userId);
 }
 
-export async function getGocardlessSession(userId: string): Promise<GoCardlessSession | null> {
-    const savedSession = await fetchSavedGoCardlessSession(userId);
-    const validatedSession = await validateGoCardlessSession(savedSession);
+export async function getGocardlessSession(userId: string, supabaseClient: SupabaseClient): Promise<GoCardlessSession | null> {
+    const savedSession = await fetchSavedGoCardlessSession(userId, supabaseClient);
+    const validatedSession = validateGoCardlessSession(savedSession);
 
     if (!validatedSession) {
         return null;
     }
+
+    console.log('===> getGocardlessSession validatedSession: ', validatedSession)
 
     return validatedSession;
 }

@@ -1,5 +1,5 @@
-import { useGetInstitutions } from '@/features/integrations/api/query';
-import { YStack, H6, YGroup, Text, ScrollView, ListItem, XStack, Image, useTheme, getTokens } from 'tamagui';
+import { useGetInstitutions, useLinkWithInstitution } from '@/features/integrations/api/query';
+import { YStack, H6, YGroup, Text, ScrollView, ListItem, XStack, Image, getTokens } from 'tamagui';
 
 const ConnectedAccounts = () => {
     return (
@@ -10,18 +10,60 @@ const ConnectedAccounts = () => {
 const InstitutionsList = () => {
     // TODO: get country code from user (profile settings/ locale or something else)
     // TODO: there should also be the option to change country in search
-    const { data: institutions, error } = useGetInstitutions('PL');
+    const { data: institutions, isError, error, isLoading } = useGetInstitutions('PL');
+    const linkWithInstitution = useLinkWithInstitution()
 
-    if (error) {
-        return <Text>Error loading institutions</Text>;
+    const connectToInstitution = (institutionId: string) => {
+        linkWithInstitution.mutate({
+            institutionId,
+            redirectUrl: 'budgettracker://accounts',
+        })
+    }
+
+    if (isError) {
+        return <Text>Error loading institutions {error.message}</Text>;
     }
 
     if (institutions?.length === 0) {
         return <Text>No institutions found</Text>;
     }
 
+    if(isLoading) {
+        return <Text>Loading...</Text>;
+    }
+
     return (
         <YGroup bordered size="$4">
+            <Text>{'requisitions: ' + JSON.stringify(linkWithInstitution.data)}</Text>
+            {/* TODO: remove mocked data */}
+            <YGroup.Item key="mocked-institution">
+                <ListItem
+                borderColor="$color4"
+                hoverStyle={{
+                    bg: '$backgroundHover',
+                    cursor: 'pointer',
+                }}
+                borderBottomWidth={1}
+                pressStyle={{
+                    bg: '$backgroundPress',
+                    cursor: 'pointer',
+                }}
+                onPress={() => connectToInstitution('SANDBOXFINANCE_SFIN0000')}
+                // opacity={isLoading ? 0.6 : 1}
+                // disabled={isLoading}``
+                >
+                    <XStack items={'center'} gap="$2">
+                        <Image source={{
+                            uri: 'https://www.sandboxfinance.com/wp-content/uploads/2018/03/sandbox-finance-logo-1.png',
+                            width:getTokens().size.$2.val,
+                            height: getTokens().size.$2.val
+                        }} />
+                        <Text>Mocked Institution</Text>
+                    </XStack>
+                </ListItem>
+            </YGroup.Item>
+
+                
             {institutions?.map((institution) => (
                 <YGroup.Item key={institution.id}>
                     <ListItem
@@ -31,6 +73,11 @@ const InstitutionsList = () => {
                         cursor: 'pointer',
                     }}
                     borderBottomWidth={1}
+                    pressStyle={{
+                        bg: '$backgroundPress',
+                        cursor: 'pointer',
+                    }}
+                    onPress={() => connectToInstitution(institution.id)}
                     // opacity={isLoading ? 0.6 : 1}
                     // disabled={isLoading}``
                     >

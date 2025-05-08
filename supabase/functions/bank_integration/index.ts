@@ -6,10 +6,13 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 // import '@supabase/supabase-js';
-import { authenticateUser } from './auth.ts';
+import { getUser, getAuthToken } from './auth.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import * as gocardless from './gocardless.ts';
 import * as session from './session.ts';
+import { createSupabaseClient } from '../_shared/supabase.ts';
+
+// TODO: session is not being saved to database
 
 // Update the main serve function to handle different endpoints
 Deno.serve(async (req) => {
@@ -26,7 +29,10 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const user = await authenticateUser(req);
+        const token = getAuthToken(req);
+        const supabaseClient = createSupabaseClient(token)
+        const user = await getUser(token, supabaseClient)
+
         const url = new URL(req.url);
 
         // Remove leading and trailing slashes and split
@@ -41,17 +47,27 @@ Deno.serve(async (req) => {
             bankIntegrationIndex >= 0 ? fullPath.slice(bankIntegrationIndex + 1) : fullPath;
 
         // Initialize GoCardless session
-        let goCardlessSession = await session.getGocardlessSession(user.id);
+        let goCardlessSession = await session.getGocardlessSession(user.id, supabaseClient);
         if (!goCardlessSession) {
-            goCardlessSession = await gocardless.getToken(user.id);
+            goCardlessSession = await gocardless.getToken(user.id, supabaseClient);
         }
 
-        const bufferTimeMs = 2 * 60 * 1000;
-        if (goCardlessSession.accessExpires < Date.now() + bufferTimeMs) {
-            goCardlessSession = await gocardless.refreshToken(
-                user.id,
-                goCardlessSession.refreshToken,
-            );
+        const now = new Date();
+        const bufferTimeMs = 2 * 60 * 1000; // 2 minutes in milliseconds
+        const accessExpiresDate = new Date(goCardlessSession.accessExpires);
+        
+        if (accessExpiresDate.getTime() < now.getTime() + bufferTimeMs) {
+            try {
+                goCardlessSession = await gocardless.refreshToken(
+                    user.id,
+                    goCardlessSession,
+                    supabaseClient
+                );
+            } catch (error) {
+                // If refresh token fails, get a new token
+                console.log('Refresh token failed, getting new token');
+                goCardlessSession = await gocardless.getToken(user.id, supabaseClient);
+            }
         }
 
         // Handle different endpoints based on the first part of the processed path
@@ -67,6 +83,8 @@ Deno.serve(async (req) => {
                 });
 
             case 'accounts':
+                const { requisitionId } = await req.json();
+
                 const accounts = await gocardless.getBankAccounts(
                     user.id,
                     goCardlessSession.accessToken,
@@ -93,25 +111,28 @@ Deno.serve(async (req) => {
                     throw new Error('Method not allowed');
                 }
 
-                const body = await req.json();
-                const { institutionId, redirectUrl } = body;
+                const { institutionId, redirectUrl } = await req.json();
 
                 if (!institutionId || !redirectUrl) {
                     throw new Error('Institution ID and redirect URL are required');
                 }
 
                 // Create end user agreement
-                const agreement = await gocardless.createEndUserAgreement(
-                    institutionId,
-                    goCardlessSession.accessToken,
-                );
+                // const agreement = await gocardless.createEndUserAgreement(
+                //     institutionId,
+                //     goCardlessSession.accessToken,
+                // );
 
                 // Create requisition with the agreement
                 const requisition = await gocardless.createRequisition(
-                    institutionId,
-                    agreement.id,
-                    redirectUrl,
-                    goCardlessSession.accessToken,
+                    {
+                        institutionId,
+                        userId: user.id,
+                        // agreementId: agreement?.id,
+                        redirectUrl,
+                        accessToken: goCardlessSession.accessToken,
+                    },
+                    supabaseClient
                 );
 
                 return new Response(JSON.stringify(requisition), {
@@ -132,8 +153,18 @@ Deno.serve(async (req) => {
         }
     } catch (error) {
         console.error('Error:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: error.message.includes('Unauthorized') ? 401 : 500,
+        let errorMessage = 'An unexpected error occurred';
+        let statusCode = 500;
+        
+        if (error instanceof Error) {
+            errorMessage = error.message;
+            if (errorMessage.includes('Unauthorized')) {
+                statusCode = 401;
+            }
+        }
+        
+        return new Response(JSON.stringify({ error: errorMessage }), {
+            status: statusCode,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
