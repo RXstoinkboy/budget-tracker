@@ -32,7 +32,7 @@ export interface EndUserAgreement {
     institution_id: string;
 }
 
-export interface Requisition {
+export interface RequisitionResponse {
     id: string;
     redirect: string;
     status: {
@@ -45,4 +45,10 @@ export interface Requisition {
     reference: string;
     user_language: string;
     link: string;
+}
+
+export type RequisitionData = {
+    requisition_id: string,
+    institution_id: string,
+    user_id: string,
 }

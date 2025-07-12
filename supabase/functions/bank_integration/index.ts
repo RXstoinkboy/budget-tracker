@@ -83,6 +83,15 @@ Deno.serve(async (req) => {
                 });
 
             case 'accounts':
+                // TODO: implementation needed
+                /**
+                 * 1. fetch accounts for the first time from gocardless api using requisition_id
+                 * 2. save account ids with some additional info from earlier like (logo img url, bank name, requisition_id should also be saved together with it)
+                 * 3. I might also have to allow user to decide which bank accounts they want to sync if they have multiple ibans in that bank
+                 * 4. I have to fetch account details to get info like iban, name product etc and then store it in db
+                 * 5. after that I can use data from above to display synced accounts details
+                 * 6. use saved account if in order to perform stuff like fetching transactions etc
+                 */
                 const { requisitionId } = await req.json();
 
                 const accounts = await gocardless.getBankAccounts(
@@ -123,7 +132,25 @@ Deno.serve(async (req) => {
                 //     goCardlessSession.accessToken,
                 // );
 
-                // Create requisition with the agreement
+                
+                // TODO: improvement needed
+                /**
+                 * 1. currently it works really bad because user can only have a single requisition for given bank
+                 *      I think that they should actually be able to have multiple requisitions for a single bank
+                 * 2. user should also be able to delete requisition which has been once created
+                 */
+                const existingRequisition = await gocardless.getRequisition({
+                    userId: user.id,
+                    institutionId,
+                    supabaseClient
+                })
+
+                if (existingRequisition) {
+                    return new Response(JSON.stringify(existingRequisition), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
+                }
+
                 const requisition = await gocardless.createRequisition(
                     {
                         institutionId,

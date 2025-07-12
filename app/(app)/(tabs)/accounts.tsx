@@ -1,4 +1,5 @@
 import { useGetInstitutions, useLinkWithInstitution } from '@/features/integrations/api/query';
+import { Linking } from 'react-native';
 import { YStack, H6, YGroup, Text, ScrollView, ListItem, XStack, Image, getTokens } from 'tamagui';
 
 const ConnectedAccounts = () => {
@@ -11,7 +12,11 @@ const InstitutionsList = () => {
     // TODO: get country code from user (profile settings/ locale or something else)
     // TODO: there should also be the option to change country in search
     const { data: institutions, isError, error, isLoading } = useGetInstitutions('PL');
-    const linkWithInstitution = useLinkWithInstitution()
+    const linkWithInstitution = useLinkWithInstitution({
+        onSuccess(data) {
+            Linking.openURL(data.link)
+        },
+    })
 
     const connectToInstitution = (institutionId: string) => {
         linkWithInstitution.mutate({
@@ -34,8 +39,6 @@ const InstitutionsList = () => {
 
     return (
         <YGroup bordered size="$4">
-            <Text>{'requisitions: ' + JSON.stringify(linkWithInstitution.data)}</Text>
-            {/* TODO: remove mocked data */}
             <YGroup.Item key="mocked-institution">
                 <ListItem
                 borderColor="$color4"
