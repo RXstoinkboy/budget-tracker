@@ -1,39 +1,39 @@
-import { ExpoConfig } from 'expo/config';
+import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-    name: 'budget-tracker',
-    slug: 'budget-tracker',
-    version: '1.0.0',
-    orientation: 'portrait',
-    icon: './assets/images/images/icon.png',
-    scheme: 'budgettracker',
-    userInterfaceStyle: 'automatic',
+    name: "budget-tracker",
+    slug: "budget-tracker",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "budgettracker",
+    userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
         supportsTablet: true,
     },
     android: {
         adaptiveIcon: {
-            foregroundImage: './assets/images/images/adaptive-icon.png',
-            backgroundColor: '#ffffff',
+            foregroundImage: "./assets/images/adaptive-icon.png",
+            backgroundColor: "#ffffff",
         },
-        package: 'com.anonymous.budgettracker',
+        package: "com.anonymous.budgettracker",
     },
     web: {
-        bundler: 'metro',
-        output: 'single',
+        bundler: "metro",
+        output: "single",
         // output: 'static', // INFO: this is default config
-        favicon: './assets/images/favicon.png',
+        favicon: "./assets/images/favicon.png",
     },
     plugins: [
-        'expo-router',
-        'expo-font',
+        "expo-router",
+        "expo-font",
         [
-            'expo-splash-screen',
+            "expo-splash-screen",
             {
-                image: './assets/images/images/splash.png',
-                resizeMode: 'contain',
-                backgroundColor: '#25292e',
+                image: "./assets/images/images/splash.png",
+                resizeMode: "contain",
+                backgroundColor: "#25292e",
             },
         ],
     ],

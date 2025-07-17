@@ -151,17 +151,18 @@ export async function createEndUserAgreement(
 export async function getRequisition({
   userId,
   institutionId,
-  supabaseClient
+  supabaseClient,
 }: {
   userId: string;
   institutionId: string;
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient;
 }): Promise<RequisitionData> {
-    const { data, error } = await supabaseClient.from('requisitions').select('*').eq('user_id', userId).eq('institution_id', institutionId)
-    if (error) {
-        throw error
-    }
-    return data[0] as RequisitionData
+  const { data, error } = await supabaseClient.from("requisitions").select("*")
+    .eq("user_id", userId).eq("institution_id", institutionId);
+  if (error) {
+    throw error;
+  }
+  return data[0] as RequisitionData;
 }
 
 export async function createRequisition(
@@ -171,12 +172,14 @@ export async function createRequisition(
     agreementId,
     redirectUrl,
     accessToken,
+    status,
   }: {
     userId: string;
     institutionId: string;
     agreementId?: string;
     redirectUrl: string;
     accessToken: string;
+    status: "pending" | "linked" | "error";
   },
   supabaseClient: SupabaseClient,
 ): Promise<RequisitionData> {
@@ -204,15 +207,19 @@ export async function createRequisition(
     requisition_id: requisition.id,
     institution_id: institutionId,
     user_id: userId,
-  }
+    link: requisition.link,
+    status,
+  };
 
-  const { error } = await supabaseClient.from("requisitions").insert(requisitionData);
+  const { error } = await supabaseClient.from("requisitions").insert(
+    requisitionData,
+  );
 
   if (error) {
     throw error;
   }
 
-  return requisitionData
+  return requisition;
 }
 
 export async function getInstitutions(
@@ -235,4 +242,35 @@ export async function getInstitutions(
   }
 
   return response.json();
+}
+
+export async function deleteRequisition(
+  requisitionId: string,
+  accessToken: string,
+  supabaseClient: SupabaseClient,
+) {
+  const response = await fetch(
+    `${GOCARDLESS_API_ENDPOINT}/requisitions/${requisitionId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to create requisition");
+  }
+
+  const { error } = await supabaseClient.from("requisitions").delete().eq(
+    "requisition_id",
+    requisitionId,
+  );
+  if (error) {
+    throw error;
+  }
+  return true;
 }

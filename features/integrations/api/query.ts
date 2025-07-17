@@ -1,49 +1,55 @@
 import { supabase } from "@/utils/supabase";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    useMutation,
+    UseMutationOptions,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import { InstitutionDto, LinkWithInstitutionParams } from "./types";
-import { Linking } from 'react-native';
+import { Linking } from "react-native";
 
 export const integrationsKeys = {
-    all: ['integrations'] as const,
-    lists: () => [...integrationsKeys.all, 'list'] as const,
-    list: (countryCode: string) => [...integrationsKeys.lists(), { countryCode }] as const,
-    link: () => [...integrationsKeys.all, 'link'] as const,
+    all: ["integrations"] as const,
+    lists: () => [...integrationsKeys.all, "list"] as const,
+    list: (countryCode: string) =>
+        [...integrationsKeys.lists(), { countryCode }] as const,
+    link: () => [...integrationsKeys.all, "link"] as const,
 };
 
 const getIntegrations = async (countryCode: string) => {
     const { data, error } = await supabase.functions.invoke(
         `bank_integration/institutions?country=${countryCode}`,
         {
-            method: 'GET',
+            method: "GET",
             headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
+                "Content-Type": "application/json",
+                Accept: "application/json",
             },
         },
     );
 
     if (error) {
-        throw error
+        throw error;
     }
 
-    return data
-}
+    return data;
+};
 
 const linkWithInstitution = async (body: LinkWithInstitutionParams) => {
     const { data, error } = await supabase.functions.invoke(
         `bank_integration/link`,
         {
-            method: 'POST',
+            method: "POST",
             body,
         },
     );
 
-    if(error){
-        throw error
+    if (error) {
+        throw error;
     }
 
-    return data
-}
+    return data;
+};
 
 export const useGetInstitutions = (countryCode: string) => {
     return useQuery<InstitutionDto[], Error>({
@@ -59,7 +65,7 @@ export const useLinkWithInstitution = (options?: {
     return useMutation({
         mutationFn: async (body: LinkWithInstitutionParams) => {
             const data = await linkWithInstitution(body);
-            
+
             return data;
         },
         onSuccess: async (data) => {
@@ -72,9 +78,39 @@ export const useLinkWithInstitution = (options?: {
             options?.onSuccess?.(data);
         },
         onError: (error: Error) => {
-            console.error('Error linking with institution:', error);
+            console.error("Error linking with institution:", error);
             options?.onError?.(error);
         },
         mutationKey: integrationsKeys.link(),
+    });
+};
+
+const updateRequisitionStatus = async (body: UpdateRequisitionStatusParams) => {
+    const { error } = await supabase.functions.invoke(
+        `bank_integration/status`,
+        {
+            method: "POST",
+            body,
+        },
+    );
+
+    if (error) {
+        throw error;
+    }
+};
+
+type UpdateRequisitionStatusParams = {
+    requisitionId: string;
+    status: "pending" | "linked" | "error";
+};
+
+export const useUpdateRequisitionStatus = (
+    options?: UseMutationOptions<any, Error, UpdateRequisitionStatusParams>,
+) => {
+    return useMutation({
+        mutationFn: async (body) => {
+            await updateRequisitionStatus(body);
+        },
+        ...options,
     });
 };
