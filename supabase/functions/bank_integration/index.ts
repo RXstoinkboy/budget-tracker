@@ -151,12 +151,18 @@ Deno.serve(async (req) => {
           supabaseClient,
         });
 
-        if (existingRequisition) {
-          gocardless.deleteRequisition(
+        if (existingRequisition && existingRequisition.status !== "linked") {
+          await gocardless.deleteRequisition(
             existingRequisition.requisition_id,
             goCardlessSession.accessToken,
             supabaseClient,
           );
+        }
+
+        if (existingRequisition && existingRequisition.status === "linked") {
+          return new Response(JSON.stringify(existingRequisition), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
         const requisition = await gocardless.createRequisition(

@@ -3,7 +3,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as Linking from 'expo-linking';
 
 // router
 import { Slot } from 'expo-router';
@@ -15,6 +14,7 @@ import { tamaguiConfig } from '../tamagui.config';
 import { useFonts, Inter_400Regular, Inter_900Black } from '@expo-google-fonts/inter';
 import { QueryClientProvider } from '@/services/query-provider';
 import { useInitiateAuth } from '@/features/auth/hooks';
+import { useGetRequisitionDataFromUrl } from '@/features/integrations';
 
 if (Platform.OS === 'web') {
     require('../tamagui-web.css');
@@ -62,6 +62,7 @@ export default function App() {
 function RootLayout() {
     const colorScheme = useColorScheme();
     useInitiateAuth();
+    useGetRequisitionDataFromUrl();
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>

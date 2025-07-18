@@ -183,6 +183,7 @@ export async function createRequisition(
   },
   supabaseClient: SupabaseClient,
 ): Promise<RequisitionData> {
+  console.log("LOG Creating requisition", institutionId, redirectUrl);
   const response = await fetch(`${GOCARDLESS_API_ENDPOINT}/requisitions/`, {
     method: "POST",
     headers: {
@@ -199,7 +200,8 @@ export async function createRequisition(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create requisition");
+    console.error("LOG Failed to create requisition", response);
+    throw new Error(`Failed to create requisition`);
   }
 
   const requisition = await response.json();
@@ -249,21 +251,22 @@ export async function deleteRequisition(
   accessToken: string,
   supabaseClient: SupabaseClient,
 ) {
-  const response = await fetch(
-    `${GOCARDLESS_API_ENDPOINT}/requisitions/${requisitionId}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        accept: "application/json",
-      },
-    },
-  );
+  // const response = await fetch(
+  //   `${GOCARDLESS_API_ENDPOINT}/requisitions/${requisitionId}/`,
+  //   {
+  //     method: "DELETE",
+  //     headers: {
+  //       Authorization: `Bearer ${accessToken}`,
+  //       "Content-Type": "application/json",
+  //       accept: "application/json",
+  //     },
+  //   },
+  // );
 
-  if (!response.ok) {
-    throw new Error("Failed to create requisition");
-  }
+  // if (!response.ok) {
+  //   console.error("LOG Failed to delete requisition", response);
+  //   throw new Error("Failed to delete requisition");
+  // }
 
   const { error } = await supabaseClient.from("requisitions").delete().eq(
     "requisition_id",

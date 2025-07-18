@@ -1,47 +1,6 @@
-import {
-    useGetInstitutions,
-    useLinkWithInstitution,
-    useUpdateRequisitionStatus,
-} from '@/features/integrations/api/query';
-import { useEffect, useState } from 'react';
+import { useGetInstitutions, useLinkWithInstitution } from '@/features/integrations/api/query';
 import { Linking } from 'react-native';
 import { YStack, H6, YGroup, Text, ScrollView, ListItem, XStack, Image, getTokens } from 'tamagui';
-
-export function useGetRequisitionDataFromUrl() {
-    const updateRequisitionStatus = useUpdateRequisitionStatus();
-
-    useEffect(() => {
-        // Handle deep linking
-        const subscription = Linking.addEventListener('url', ({ url }) => {
-            console.log('=======>>>> url', url);
-            const urlParams = new URLSearchParams(url);
-            const requisitionId = urlParams.get('ref');
-            const error = urlParams.get('error');
-            const details = urlParams.get('details');
-
-            if (error) {
-                console.log('Error redirecting from URL', error, details);
-                return;
-            }
-
-            updateRequisitionStatus.mutate(
-                {
-                    requisitionId: requisitionId || '',
-                    status: error ? 'error' : 'linked',
-                },
-                {
-                    onSuccess: () => {
-                        console.log('Requisition status updated');
-                    },
-                },
-            );
-        });
-
-        return () => {
-            subscription.remove();
-        };
-    }, []);
-}
 
 const ConnectedAccounts = () => {
     return <H6>No accounts connected yet</H6>;
@@ -57,7 +16,6 @@ const InstitutionsList = () => {
             Linking.openURL(data.link);
         },
     });
-    useGetRequisitionDataFromUrl();
 
     const connectToInstitution = (institutionId: string) => {
         linkWithInstitution.mutate({
