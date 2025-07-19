@@ -67,7 +67,9 @@ function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <QueryClientProvider>
-                <TamaguiProvider config={tamaguiConfig}>
+                <TamaguiProvider
+                    config={tamaguiConfig}
+                    defaultTheme={colorScheme === 'dark' ? 'dark' : 'light'}>
                     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
                         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                         <Slot />
