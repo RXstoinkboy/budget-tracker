@@ -37,7 +37,7 @@ const getIntegrations = async (countryCode: string) => {
 
 const linkWithInstitution = async (body: LinkWithInstitutionParams) => {
     const { data, error } = await supabase.functions.invoke(
-        `bank_integration/link`,
+        `bank_integration/requisitions`,
         {
             method: "POST",
             body,
@@ -85,11 +85,13 @@ export const useLinkWithInstitution = (options?: {
     });
 };
 
-const updateRequisitionStatus = async (body: UpdateRequisitionStatusParams) => {
+const updateRequisitionStatus = async (
+    { requisitionId, ...body }: UpdateRequisitionStatusParams,
+) => {
     const { error } = await supabase.functions.invoke(
-        `bank_integration/status`,
+        `bank_integration/requisitions/${requisitionId}/status`,
         {
-            method: "POST",
+            method: "PUT",
             body,
         },
     );

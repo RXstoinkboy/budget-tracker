@@ -6,6 +6,8 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 // import '@supabase/supabase-js';
+import { Hono } from "jsr:@hono/hono";
+import { HTTPException } from "jsr:@hono/hono/http-exception";
 import { getAuthToken, getUser } from "./auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import * as gocardless from "./gocardless.ts";
@@ -14,38 +16,23 @@ import { createSupabaseClient } from "../_shared/supabase.ts";
 
 // TODO: session is not being saved to database
 
-// Update the main serve function to handle different endpoints
-Deno.serve(async (req) => {
-  // Always handle OPTIONS requests first
-  if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request");
-    // return new Response(null, {
-    //     headers: corsHeaders,
-    //     status: 204,
-    // });
-    if (req.method === "OPTIONS") {
-      return new Response("ok", { headers: corsHeaders });
-    }
-  }
+// Custom environment type for Supabase client
+type Env = {
+  Variables: {
+    user: any;
+    supabaseClient: any;
+    goCardlessSession: any;
+  };
+};
 
+const app = new Hono<Env>().basePath("/bank_integration");
+
+// Middleware for authentication and session setup
+app.use("*", async (c, next) => {
   try {
-    const token = getAuthToken(req);
+    const token = getAuthToken(c.req.raw);
     const supabaseClient = createSupabaseClient(token);
     const user = await getUser(token, supabaseClient);
-
-    const url = new URL(req.url);
-
-    // Remove leading and trailing slashes and split
-    const fullPath = url.pathname.replace(/^\/|\/$/g, "").split("/");
-
-    // In production, the path might include 'functions/v1/bank_integration'
-    // Find the index of 'bank_integration' if it exists in the path
-    const bankIntegrationIndex = fullPath.indexOf("bank_integration");
-
-    // Get the actual endpoint path (everything after 'bank_integration')
-    const path = bankIntegrationIndex >= 0
-      ? fullPath.slice(bankIntegrationIndex + 1)
-      : fullPath;
 
     // Initialize GoCardless session
     let goCardlessSession = await session.getGocardlessSession(
@@ -74,176 +61,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Handle different endpoints based on the first part of the processed path
-    switch (path[0] || "") {
-      case "institutions": {
-        const countryCode = url.searchParams.get("country") || "GB";
-        const institutions = await gocardless.getInstitutions(
-          countryCode,
-          goCardlessSession.accessToken,
-        );
-        return new Response(JSON.stringify(institutions), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Set variables for use in route handlers
+    c.set("user", user);
+    c.set("supabaseClient", supabaseClient);
+    c.set("goCardlessSession", goCardlessSession);
 
-      case "accounts": {
-        // TODO: implementation needed
-        /**
-         * 1. fetch accounts for the first time from gocardless api using requisition_id
-         * 2. save account ids with some additional info from earlier like (logo img url, bank name, requisition_id should also be saved together with it)
-         * 3. I might also have to allow user to decide which bank accounts they want to sync if they have multiple ibans in that bank
-         * 4. I have to fetch account details to get info like iban, name product etc and then store it in db
-         * 5. after that I can use data from above to display synced accounts details
-         * 6. use saved account if in order to perform stuff like fetching transactions etc
-         */
-        const { requisitionId } = await req.json();
-
-        const accounts = await gocardless.getBankAccounts(
-          user.id,
-          goCardlessSession.accessToken,
-        );
-        return new Response(JSON.stringify(accounts), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      case "transactions": {
-        const accountId = path[1];
-        if (!accountId) {
-          throw new Error("Account ID is required");
-        }
-        const transactions = await gocardless.getTransactions(
-          accountId,
-          goCardlessSession.accessToken,
-        );
-        return new Response(JSON.stringify(transactions), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      case "link": {
-        if (req.method !== "POST") {
-          throw new Error("Method not allowed");
-        }
-
-        const { institutionId, redirectUrl } = await req.json();
-
-        if (!institutionId || !redirectUrl) {
-          throw new Error("Institution ID and redirect URL are required");
-        }
-
-        // Create end user agreement
-        // const agreement = await gocardless.createEndUserAgreement(
-        //     institutionId,
-        //     goCardlessSession.accessToken,
-        // );
-
-        // TODO: improvement needed
-        /**
-         * 1. currently it works really bad because user can only have a single requisition for given bank
-         *      I think that they should actually be able to have multiple requisitions for a single bank
-         * 2. user should also be able to delete requisition which has been once created
-         */
-        const existingRequisition = await gocardless.getRequisition({
-          userId: user.id,
-          institutionId,
-          supabaseClient,
-        });
-
-        if (existingRequisition && existingRequisition.status !== "linked") {
-          await gocardless.deleteRequisition(
-            existingRequisition.requisition_id,
-            goCardlessSession.accessToken,
-            supabaseClient,
-          );
-        }
-
-        if (existingRequisition && existingRequisition.status === "linked") {
-          return new Response(JSON.stringify(existingRequisition), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const requisition = await gocardless.createRequisition(
-          {
-            institutionId,
-            userId: user.id,
-            // agreementId: agreement?.id,
-            redirectUrl,
-            accessToken: goCardlessSession.accessToken,
-            status: "pending",
-          },
-          supabaseClient,
-        );
-
-        return new Response(JSON.stringify(requisition), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      case "status": {
-        const { requisitionId, status } = await req.json();
-        if (!requisitionId || !status) {
-          return new Response(
-            JSON.stringify({
-              message: "Requisition ID and status are required",
-              status: 400,
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-        console.log("Updating requisition status", { requisitionId, status });
-        const { error } = await supabaseClient.from("requisitions").update({
-          status,
-        }).eq("requisition_id", requisitionId);
-
-        if (error) {
-          console.error(`Error updating requisition status: ${error.message}`);
-          console.error(
-            `Tried with data: ${JSON.stringify({ requisitionId, status })}`,
-          );
-          return new Response(
-            JSON.stringify({
-              message: "Error updating requisition status",
-              status: 500,
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-
-        return new Response(
-          JSON.stringify({
-            message: "Requisition status updated",
-            status: 200,
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      // Handle empty path (root endpoint)
-      case "":
-        return new Response(
-          JSON.stringify({ message: "Bank Integration API" }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-
-      default:
-        return new Response(JSON.stringify({ error: "Invalid endpoint" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
+    await next();
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Middleware error:", error);
+
+    if (error instanceof HTTPException) {
+      throw error; // Re-throw HTTPExceptions to let Hono handle them
+    }
+
     let errorMessage = "An unexpected error occurred";
     let statusCode = 500;
 
@@ -254,12 +84,229 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: statusCode,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    throw new HTTPException(statusCode as 400 | 401 | 500, {
+      message: errorMessage,
     });
   }
 });
+
+// Routes
+app.get("/", (c) => {
+  return c.json({ message: "Bank Integration API" });
+});
+
+app.get("/institutions", async (c) => {
+  const countryCode = c.req.query("country") || "GB";
+  const goCardlessSession = c.get("goCardlessSession");
+
+  const institutions = await gocardless.getInstitutions(
+    countryCode,
+    goCardlessSession.accessToken,
+  );
+  return c.json(institutions);
+});
+
+app.post("/accounts", async (c) => {
+  // TODO: implementation needed
+  /**
+   * 1. fetch accounts for the first time from gocardless api using requisition_id
+   * 2. save account ids with some additional info from earlier like (logo img url, bank name, requisition_id should also be saved together with it)
+   * 3. I might also have to allow user to decide which bank accounts they want to sync if they have multiple ibans in that bank
+   * 4. I have to fetch account details to get info like iban, name product etc and then store it in db
+   * 5. after that I can use data from above to display synced accounts details
+   * 6. use saved account if in order to perform stuff like fetching transactions etc
+   */
+  const { requisitionId } = await c.req.json();
+  const user = c.get("user");
+  const goCardlessSession = c.get("goCardlessSession");
+
+  const accounts = await gocardless.getBankAccounts(
+    user.id,
+    goCardlessSession.accessToken,
+  );
+  return c.json(accounts);
+});
+
+app.get("/transactions/:accountId", async (c) => {
+  const accountId = c.req.param("accountId");
+  const goCardlessSession = c.get("goCardlessSession");
+
+  const transactions = await gocardless.getTransactions(
+    accountId,
+    goCardlessSession.accessToken,
+  );
+  return c.json(transactions);
+});
+
+// Create new requisitions to selected bank
+app.post("/requisitions", async (c) => {
+  const { institutionId, redirectUrl } = await c.req.json();
+  const user = c.get("user");
+  const supabaseClient = c.get("supabaseClient");
+  const goCardlessSession = c.get("goCardlessSession");
+
+  if (!institutionId || !redirectUrl) {
+    throw new HTTPException(400, {
+      message: "Institution ID and redirect URL are required",
+    });
+  }
+
+  // Create end user agreement
+  // const agreement = await gocardless.createEndUserAgreement(
+  //     institutionId,
+  //     goCardlessSession.accessToken,
+  // );
+
+  // TODO: improvement needed
+  /**
+   * 1. currently it works really bad because user can only have a single requisition for given bank
+   *      I think that they should actually be able to have multiple requisitions for a single bank
+   * 2. user should also be able to delete requisition which has been once created
+   */
+  const existingRequisition = await gocardless.getRequisition({
+    userId: user.id,
+    institutionId,
+    supabaseClient,
+  });
+
+  if (existingRequisition && existingRequisition.status !== "linked") {
+    await gocardless.deleteRequisition(
+      existingRequisition.requisition_id,
+      goCardlessSession.accessToken,
+      supabaseClient,
+    );
+  }
+
+  if (existingRequisition && existingRequisition.status === "linked") {
+    return c.json(existingRequisition);
+  }
+
+  const requisition = await gocardless.createRequisition(
+    {
+      institutionId,
+      userId: user.id,
+      // agreementId: agreement?.id,
+      redirectUrl,
+      accessToken: goCardlessSession.accessToken,
+      status: "pending",
+    },
+    supabaseClient,
+  );
+
+  return c.json(requisition);
+});
+
+app.put("/requisitions/:requisitionId/status", async (c) => {
+  const requisitionId = c.req.param("requisitionId");
+  const { status } = await c.req.json();
+  const supabaseClient = c.get("supabaseClient");
+
+  if (!requisitionId || !status) {
+    throw new HTTPException(400, {
+      message: "Requisition ID and status are required",
+    });
+  }
+
+  console.log("Updating requisition status", { requisitionId, status });
+  const { error } = await supabaseClient.from("requisitions").update({
+    status,
+  }).eq("requisition_id", requisitionId);
+
+  if (error) {
+    console.error(`Error updating requisition status: ${error.message}`);
+    console.error(
+      `Tried with data: ${JSON.stringify({ requisitionId, status })}`,
+    );
+    throw new HTTPException(500, {
+      message: "Error updating requisition status",
+    });
+  }
+
+  return c.json({
+    message: "Requisition status updated",
+    status: 200,
+  });
+});
+
+// Handle CORS
+app.options("*", (c) => {
+  return new Response("ok", {
+    headers: {
+      ...corsHeaders,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+});
+
+// Handle 404s
+app.notFound((c) => {
+  return c.json({
+    error: "Invalid endpoint",
+    message: `Endpoint ${c.req.method} ${c.req.path} not found`,
+  }, 404);
+});
+
+// Handle errors
+app.onError((err, c) => {
+  console.error("Unhandled error:", err);
+
+  // If it's an HTTPException, use its status and message
+  if (err instanceof HTTPException) {
+    return c.json({
+      error: err.message,
+      status: err.status,
+    }, err.status);
+  }
+
+  // Handle other known error types
+  if (err instanceof Error) {
+    // Check for specific error patterns
+    if (
+      err.message.includes("Unauthorized") ||
+      err.message.includes("Invalid token")
+    ) {
+      return c.json({
+        error: "Unauthorized",
+        message: "Authentication required or token invalid",
+      }, 401);
+    }
+
+    if (err.message.includes("Forbidden")) {
+      return c.json({
+        error: "Forbidden",
+        message: "Access denied",
+      }, 403);
+    }
+
+    if (err.message.includes("Not found")) {
+      return c.json({
+        error: "Not found",
+        message: err.message,
+      }, 404);
+    }
+
+    // Log the full error for debugging but return a sanitized message
+    console.error("Application error details:", {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+    });
+
+    return c.json({
+      error: "Application error",
+      message: err.message,
+    }, 500);
+  }
+
+  // Fallback for unknown error types
+  return c.json({
+    error: "Internal server error",
+    message: "An unexpected error occurred",
+  }, 500);
+});
+
+Deno.serve(app.fetch);
 
 /* To invoke locally:
 
