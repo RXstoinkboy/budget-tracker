@@ -12,7 +12,7 @@ import { GetThemeValueForKey, Spinner } from 'tamagui';
 export default function TabLayout() {
     const session = useAuthSession();
 
-    if (session.isLoading) {
+    if (session.isPending) {
         return <Spinner size="large" />;
     }
 
