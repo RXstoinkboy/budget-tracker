@@ -17,7 +17,7 @@ const config: ExpoConfig = {
             foregroundImage: "./assets/images/adaptive-icon.png",
             backgroundColor: "#ffffff",
         },
-        package: "com.anonymous.budgettracker",
+        package: "com.budgettracker",
     },
     web: {
         bundler: "metro",
@@ -34,6 +34,12 @@ const config: ExpoConfig = {
                 image: "./assets/images/images/splash.png",
                 resizeMode: "contain",
                 backgroundColor: "#25292e",
+            },
+        ],
+        [
+            "expo-web-browser",
+            {
+                "experimentalLauncherActivity": true,
             },
         ],
     ],

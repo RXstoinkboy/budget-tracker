@@ -1,8 +1,9 @@
 import {
-  BankAccount,
+  BankAccountResponse,
   EndUserAgreement,
   GoCardlessSession,
   RequisitionData,
+  RequisitionResponse,
 } from "./types.ts";
 import * as session from "./session.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -91,10 +92,9 @@ export async function refreshToken(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getBankAccounts(
-  userId: string,
+export async function fetchBankAccounts(
   accessToken: string,
-): Promise<BankAccount[]> {
+): Promise<BankAccountResponse[]> {
   const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/accounts/`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -148,7 +148,7 @@ export async function createEndUserAgreement(
   return response.json();
 }
 
-export async function getRequisition({
+export async function getSavedRequisition({
   userId,
   institutionId,
   supabaseClient,
@@ -163,6 +163,30 @@ export async function getRequisition({
     throw error;
   }
   return data[0] as RequisitionData;
+}
+
+export async function fetchRequisition({
+  requisitionId,
+  accessToken,
+}: {
+  requisitionId: string;
+  accessToken: string;
+}): Promise<RequisitionResponse> {
+  const response = await fetch(
+    `${GOCARDLESS_API_ENDPOINT}/requisitions/${requisitionId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+    },
+  );
+  if (!response.ok) {
+    console.error("LOG Failed to fetch requisition", response);
+    throw new Error(`Failed to fetch requisition: ${response.statusText}`);
+  }
+  return response.json();
 }
 
 export async function createRequisition(
@@ -183,7 +207,13 @@ export async function createRequisition(
   },
   supabaseClient: SupabaseClient,
 ): Promise<RequisitionData> {
-  console.log("LOG Creating requisition", institutionId, redirectUrl);
+  console.log("LOG Creating requisition", {
+    redirectUrl,
+    institutionId,
+    agreementId,
+    userId,
+    status,
+  });
   const response = await fetch(`${GOCARDLESS_API_ENDPOINT}/requisitions/`, {
     method: "POST",
     headers: {
@@ -209,9 +239,9 @@ export async function createRequisition(
     requisition_id: requisition.id,
     institution_id: institutionId,
     user_id: userId,
-    link: requisition.link,
     status,
   };
+  console.log("=======> LOG requisition in onInit ", requisition);
 
   const { error } = await supabaseClient.from("requisitions").insert(
     requisitionData,
@@ -271,6 +301,26 @@ export async function deleteRequisition(
   const { error } = await supabaseClient.from("requisitions").delete().eq(
     "requisition_id",
     requisitionId,
+  );
+  if (error) {
+    throw error;
+  }
+  return true;
+}
+
+export async function saveBankAccounts(
+  userId: string,
+  requisitionId: string,
+  bankAccountsIds: string[],
+  supabaseClient: SupabaseClient,
+) {
+  const accountsToInsert = bankAccountsIds.map((accountId) => ({
+    requisition_id: requisitionId,
+    user_id: userId,
+    id: accountId,
+  }));
+  const { error } = await supabaseClient.from("accounts").insert(
+    accountsToInsert,
   );
   if (error) {
     throw error;

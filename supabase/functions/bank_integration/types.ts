@@ -14,12 +14,16 @@ export type GoCardlessSessionDto = {
   refresh_expires: string;
 };
 
-export type BankAccount = {
+export type BankAccountResponse = {
   id: string;
-  balance: number;
-  currency: string;
-  accountType: string;
-  accountNumber: string;
+  created: string;
+  last_accessed: string;
+  iban: string;
+  bban: string;
+  status: string;
+  institution_id: string;
+  owner_name: string;
+  name: string;
 };
 
 export interface EndUserAgreement {

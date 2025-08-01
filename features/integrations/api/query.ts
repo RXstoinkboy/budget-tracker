@@ -6,14 +6,16 @@ import {
     useQueryClient,
 } from "@tanstack/react-query";
 import { InstitutionDto, LinkWithInstitutionParams } from "./types";
-import { Linking } from "react-native";
+import { RequisitionResponse } from "@/supabase/functions/bank_integration/types";
 
 export const integrationsKeys = {
     all: ["integrations"] as const,
     lists: () => [...integrationsKeys.all, "list"] as const,
     list: (countryCode: string) =>
         [...integrationsKeys.lists(), { countryCode }] as const,
-    link: () => [...integrationsKeys.all, "link"] as const,
+    requisitions: () => [...integrationsKeys.all, "requisitions"] as const,
+    requisition: (requisitionId: string) =>
+        [...integrationsKeys.requisitions(), { requisitionId }] as const,
 };
 
 const getIntegrations = async (countryCode: string) => {
@@ -37,7 +39,7 @@ const getIntegrations = async (countryCode: string) => {
 
 const linkWithInstitution = async (body: LinkWithInstitutionParams) => {
     const { data, error } = await supabase.functions.invoke(
-        `bank_integration/requisitions`,
+        `bank_integration/requisitions/init`,
         {
             method: "POST",
             body,
@@ -81,15 +83,15 @@ export const useLinkWithInstitution = (options?: {
             console.error("Error linking with institution:", error);
             options?.onError?.(error);
         },
-        mutationKey: integrationsKeys.link(),
     });
 };
 
 const updateRequisitionStatus = async (
     { requisitionId, ...body }: UpdateRequisitionStatusParams,
 ) => {
+    console.log("calling finalize mutation", requisitionId, body);
     const { error } = await supabase.functions.invoke(
-        `bank_integration/requisitions/${requisitionId}/status`,
+        `bank_integration/requisitions/${requisitionId}/finalize`,
         {
             method: "PUT",
             body,

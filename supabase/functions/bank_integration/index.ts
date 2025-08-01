@@ -7,12 +7,14 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 // import '@supabase/supabase-js';
 import { Hono } from "jsr:@hono/hono";
+import { cors } from "jsr:@hono/hono/cors";
 import { HTTPException } from "jsr:@hono/hono/http-exception";
 import { getAuthToken, getUser } from "./auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import * as gocardless from "./gocardless.ts";
 import * as session from "./session.ts";
 import { createSupabaseClient } from "../_shared/supabase.ts";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 // TODO: session is not being saved to database
 
@@ -28,6 +30,14 @@ type Env = {
 const app = new Hono<Env>().basePath("/bank_integration");
 
 // Middleware for authentication and session setup
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowHeaders: corsHeaders["Access-Control-Allow-Headers"].split(", "),
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  }),
+);
 app.use("*", async (c, next) => {
   try {
     const token = getAuthToken(c.req.raw);
@@ -120,8 +130,7 @@ app.post("/accounts", async (c) => {
   const user = c.get("user");
   const goCardlessSession = c.get("goCardlessSession");
 
-  const accounts = await gocardless.getBankAccounts(
-    user.id,
+  const accounts = await gocardless.fetchBankAccounts(
     goCardlessSession.accessToken,
   );
   return c.json(accounts);
@@ -138,9 +147,41 @@ app.get("/transactions/:accountId", async (c) => {
   return c.json(transactions);
 });
 
+app.get("/requisitions/:requisitionId", async (c) => {
+  const requisitionId = c.req.param("requisitionId");
+  const supabaseClient = c.get("supabaseClient") as SupabaseClient;
+  const goCardlessSession = c.get("goCardlessSession");
+  const user = c.get("user");
+
+  const requisition = await gocardless.fetchRequisition({
+    requisitionId,
+    accessToken: goCardlessSession.accessToken,
+  });
+
+  const accountsToInsert = requisition.accounts.map((accountId) => ({
+    requisition_id: requisition.id,
+    user_id: user.id,
+    id: accountId,
+  }));
+
+  const { error } = await supabaseClient.from("accounts").insert(
+    accountsToInsert,
+  );
+
+  if (error) {
+    console.error("LOG Error inserting accounts", error);
+    throw new HTTPException(500, {
+      message: "Error inserting accounts",
+    });
+  }
+
+  return c.json(requisition);
+});
+
 // Create new requisitions to selected bank
-app.post("/requisitions", async (c) => {
+app.post("/requisitions/init", async (c) => {
   const { institutionId, redirectUrl } = await c.req.json();
+  console.log("LOG /requisitions/init ", institutionId, redirectUrl);
   const user = c.get("user");
   const supabaseClient = c.get("supabaseClient");
   const goCardlessSession = c.get("goCardlessSession");
@@ -163,7 +204,7 @@ app.post("/requisitions", async (c) => {
    *      I think that they should actually be able to have multiple requisitions for a single bank
    * 2. user should also be able to delete requisition which has been once created
    */
-  const existingRequisition = await gocardless.getRequisition({
+  const existingRequisition = await gocardless.getSavedRequisition({
     userId: user.id,
     institutionId,
     supabaseClient,
@@ -196,10 +237,17 @@ app.post("/requisitions", async (c) => {
   return c.json(requisition);
 });
 
-app.put("/requisitions/:requisitionId/status", async (c) => {
+app.put("/requisitions/:requisitionId/finalize", async (c) => {
   const requisitionId = c.req.param("requisitionId");
   const { status } = await c.req.json();
   const supabaseClient = c.get("supabaseClient");
+  const goCardlessSession = c.get("goCardlessSession");
+  const user = c.get("user");
+
+  console.log("LOG Finalizing requisition", {
+    requisitionId,
+    status,
+  });
 
   if (!requisitionId || !status) {
     throw new HTTPException(400, {
@@ -207,35 +255,42 @@ app.put("/requisitions/:requisitionId/status", async (c) => {
     });
   }
 
-  console.log("Updating requisition status", { requisitionId, status });
   const { error } = await supabaseClient.from("requisitions").update({
     status,
   }).eq("requisition_id", requisitionId);
 
   if (error) {
     console.error(`Error updating requisition status: ${error.message}`);
-    console.error(
-      `Tried with data: ${JSON.stringify({ requisitionId, status })}`,
-    );
     throw new HTTPException(500, {
       message: "Error updating requisition status",
+    });
+  }
+
+  console.log("LOG fetching requisition data");
+  const requisition = await gocardless.fetchRequisition({
+    requisitionId,
+    accessToken: goCardlessSession.accessToken,
+  });
+  console.log("LOG fetched requisition data", requisition);
+
+  const isSaved = await gocardless.saveBankAccounts(
+    user.id,
+    requisition.id,
+    requisition.accounts,
+    supabaseClient,
+  );
+
+  console.log("LOG isSaved ", isSaved);
+
+  if (!isSaved) {
+    throw new HTTPException(500, {
+      message: "Error saving bank accounts",
     });
   }
 
   return c.json({
     message: "Requisition status updated",
     status: 200,
-  });
-});
-
-// Handle CORS
-app.options("*", (c) => {
-  return new Response("ok", {
-    headers: {
-      ...corsHeaders,
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
   });
 });
 

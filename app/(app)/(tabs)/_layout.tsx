@@ -60,6 +60,7 @@ export default function TabLayout() {
                 name="accounts"
                 options={{
                     title: 'Accounts',
+                    headerShown: false,
                     tabBarIcon: ({ color }) => (
                         <FolderSync size={'$1'} color={color as GetThemeValueForKey<'color'>} />
                     ),

@@ -14,7 +14,6 @@ import { tamaguiConfig } from '../tamagui.config';
 import { useFonts, Inter_400Regular, Inter_900Black } from '@expo-google-fonts/inter';
 import { QueryClientProvider } from '@/services/query-provider';
 import { useInitiateAuth } from '@/features/auth/hooks';
-import { useGetRequisitionDataFromUrl } from '@/features/integrations';
 
 if (Platform.OS === 'web') {
     require('../tamagui-web.css');
@@ -62,7 +61,6 @@ export default function App() {
 function RootLayout() {
     const colorScheme = useColorScheme();
     useInitiateAuth();
-    useGetRequisitionDataFromUrl();
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
