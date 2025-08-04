@@ -241,7 +241,6 @@ export async function createRequisition(
     user_id: userId,
     status,
   };
-  console.log("=======> LOG requisition in onInit ", requisition);
 
   const { error } = await supabaseClient.from("requisitions").insert(
     requisitionData,
