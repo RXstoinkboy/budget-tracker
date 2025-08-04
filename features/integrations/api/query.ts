@@ -4,18 +4,21 @@ import {
     UseMutationOptions,
     useQuery,
     useQueryClient,
+    UseQueryOptions,
 } from "@tanstack/react-query";
 import { InstitutionDto, LinkWithInstitutionParams } from "./types";
-import { RequisitionResponse } from "@/supabase/functions/bank_integration/types";
 
 export const integrationsKeys = {
     all: ["integrations"] as const,
     lists: () => [...integrationsKeys.all, "list"] as const,
-    list: (countryCode: string) =>
-        [...integrationsKeys.lists(), { countryCode }] as const,
-    requisitions: () => [...integrationsKeys.all, "requisitions"] as const,
+    institutions: (countryCode: string) =>
+        [...integrationsKeys.lists(), "institutions", { countryCode }] as const,
+    requisitions: () => [...integrationsKeys.lists(), "requisitions"] as const,
     requisition: (requisitionId: string) =>
         [...integrationsKeys.requisitions(), { requisitionId }] as const,
+    accounts: () => [...integrationsKeys.lists(), "accounts"],
+    account: (accountId: string) =>
+        [...integrationsKeys.accounts(), { accountId }] as const,
 };
 
 const getIntegrations = async (countryCode: string) => {
@@ -55,7 +58,7 @@ const linkWithInstitution = async (body: LinkWithInstitutionParams) => {
 
 export const useGetInstitutions = (countryCode: string) => {
     return useQuery<InstitutionDto[], Error>({
-        queryKey: integrationsKeys.list(countryCode),
+        queryKey: integrationsKeys.institutions(countryCode),
         queryFn: () => getIntegrations(countryCode),
     });
 };
@@ -111,10 +114,91 @@ type UpdateRequisitionStatusParams = {
 export const useUpdateRequisitionStatus = (
     options?: UseMutationOptions<any, Error, UpdateRequisitionStatusParams>,
 ) => {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: async (body) => {
             await updateRequisitionStatus(body);
         },
+        onSuccess: async (data, variables, context) => {
+            await queryClient.invalidateQueries({
+                queryKey: integrationsKeys.accounts(),
+            });
+
+            options?.onSuccess?.(data, variables, context);
+        },
+        ...options,
+    });
+};
+
+export type AccountDto = {
+    id: string;
+    requisition_id: string;
+    user_id: string;
+    status: string;
+};
+
+const getAccounts = async (): Promise<AccountDto[]> => {
+    const { data, error } = await supabase.functions.invoke(
+        `bank_integration/accounts`,
+        {
+            method: "GET",
+        },
+    );
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+};
+
+export const useGetAccounts = (
+    options?: UseQueryOptions<AccountDto[], Error>,
+) => {
+    return useQuery<AccountDto[], Error>({
+        queryKey: integrationsKeys.accounts(),
+        queryFn: getAccounts,
+        ...options,
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    });
+};
+
+export type AccountWithDetailsDto = AccountDto & {
+    iban: string;
+    bban: string;
+    owner_name: string;
+    name: string;
+    institution_name: string;
+    institution_logo: string;
+    institution_bic: string;
+};
+
+const getAccountWithDetails = async (
+    accountId: string,
+): Promise<AccountWithDetailsDto> => {
+    const { data, error } = await supabase.functions.invoke(
+        `bank_integration/accounts/${accountId}`,
+        {
+            method: "GET",
+        },
+    );
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+};
+
+export const useGetAccount = (
+    accountId: string,
+    options?: UseQueryOptions<AccountWithDetailsDto, Error>,
+) => {
+    return useQuery<AccountWithDetailsDto, Error>({
+        queryKey: integrationsKeys.account(accountId),
+        queryFn: () => getAccountWithDetails(accountId),
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours
         ...options,
     });
 };

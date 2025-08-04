@@ -95,7 +95,7 @@ export default function InstitutionsList() {
                             <XStack items={'center'} gap="$2">
                                 <Image
                                     source={{
-                                        uri: 'https://www.sandboxfinance.com/wp-content/uploads/2018/03/sandbox-finance-logo-1.png',
+                                        uri: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2Foriginals%2Ff3%2Fe4%2Ffa%2Ff3e4fa577f89e8757bdc8618f04c0647.png&f=1&nofb=1&ipt=b008279f9be01350e1eaafb242a9d13359d5e60ec9342e7d1c9d7f4cb202480a',
                                         width: getTokens().size.$2.val,
                                         height: getTokens().size.$2.val,
                                     }}

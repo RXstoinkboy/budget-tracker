@@ -1,7 +1,9 @@
 import {
+  BankAccountDto,
   BankAccountResponse,
   EndUserAgreement,
   GoCardlessSession,
+  InstitutionResponse,
   RequisitionData,
   RequisitionResponse,
 } from "./types.ts";
@@ -91,11 +93,24 @@ export async function refreshToken(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function fetchBankAccounts(
+export async function fetchBankAccountDetails(
+  accountId: string,
   accessToken: string,
-): Promise<BankAccountResponse[]> {
-  const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/accounts/`, {
+): Promise<BankAccountResponse> {
+  const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/accounts/${accountId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  return await res.json();
+}
+
+export async function fetchInstitutionDetails(
+  id: string,
+  accessToken: string,
+): Promise<InstitutionResponse> {
+  const res = await fetch(`${GOCARDLESS_API_ENDPOINT}/institutions/${id}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -310,13 +325,14 @@ export async function deleteRequisition(
 export async function saveBankAccounts(
   userId: string,
   requisitionId: string,
-  bankAccountsIds: string[],
+  accountIds: string[],
   supabaseClient: SupabaseClient,
 ) {
-  const accountsToInsert = bankAccountsIds.map((accountId) => ({
+  const accountsToInsert = accountIds.map((accountId) => ({
+    id: accountId,
     requisition_id: requisitionId,
     user_id: userId,
-    id: accountId,
+    status: "linked",
   }));
   const { error } = await supabaseClient.from("accounts").insert(
     accountsToInsert,
@@ -325,4 +341,20 @@ export async function saveBankAccounts(
     throw error;
   }
   return true;
+}
+
+export async function getSavedBankAccounts(
+  userId: string,
+  supabaseClient: SupabaseClient,
+): Promise<BankAccountDto[]> {
+  const { data, error } = await supabaseClient.from("accounts").select("*").eq(
+    "user_id",
+    userId,
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }

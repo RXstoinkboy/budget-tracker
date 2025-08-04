@@ -15,6 +15,7 @@ import * as gocardless from "./gocardless.ts";
 import * as session from "./session.ts";
 import { createSupabaseClient } from "../_shared/supabase.ts";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { BankAccountResponse } from "./types.ts";
 
 // TODO: session is not being saved to database
 
@@ -116,24 +117,38 @@ app.get("/institutions", async (c) => {
   return c.json(institutions);
 });
 
-app.post("/accounts", async (c) => {
-  // TODO: implementation needed
-  /**
-   * 1. fetch accounts for the first time from gocardless api using requisition_id
-   * 2. save account ids with some additional info from earlier like (logo img url, bank name, requisition_id should also be saved together with it)
-   * 3. I might also have to allow user to decide which bank accounts they want to sync if they have multiple ibans in that bank
-   * 4. I have to fetch account details to get info like iban, name product etc and then store it in db
-   * 5. after that I can use data from above to display synced accounts details
-   * 6. use saved account if in order to perform stuff like fetching transactions etc
-   */
-  const { requisitionId } = await c.req.json();
+app.get("/accounts", async (c) => {
   const user = c.get("user");
+  const supabaseClient = c.get("supabaseClient");
+
+  const accounts = await gocardless.getSavedBankAccounts(
+    user.id,
+    supabaseClient,
+  );
+
+  return c.json(accounts);
+});
+
+app.get("/accounts/:id", async (c) => {
+  const accountId = c.req.param("id");
   const goCardlessSession = c.get("goCardlessSession");
 
-  const accounts = await gocardless.fetchBankAccounts(
+  const accountWithDetails = await gocardless.fetchBankAccountDetails(
+    accountId,
     goCardlessSession.accessToken,
   );
-  return c.json(accounts);
+
+  const institution = await gocardless.fetchInstitutionDetails(
+    accountWithDetails.institution_id,
+    goCardlessSession.accessToken,
+  );
+
+  return c.json({
+    ...accountWithDetails,
+    institution_name: institution?.name,
+    institution_bic: institution?.bic,
+    institution_logo: institution?.logo,
+  });
 });
 
 app.get("/transactions/:accountId", async (c) => {
@@ -163,6 +178,17 @@ app.get("/requisitions/:requisitionId", async (c) => {
     user_id: user.id,
     id: accountId,
   }));
+
+  // TODO: get data for each account with /accounts/:id
+  // TODO: get institution data for each account
+  // TODO: validate is this is static enough data...
+  // TODO: I think that every time when I fetch /account from my BE I will have to check status for each account...
+
+  // const accountsToInsertWithDetails = await Promise.all(
+  //   accountsToInsert.map((account) =>
+  //     gocardless.fetchBankAccountDetails(account.id)
+  //   ),
+  // );
 
   const { error } = await supabaseClient.from("accounts").insert(
     accountsToInsert,
@@ -244,11 +270,6 @@ app.put("/requisitions/:requisitionId/finalize", async (c) => {
   const goCardlessSession = c.get("goCardlessSession");
   const user = c.get("user");
 
-  console.log("LOG Finalizing requisition", {
-    requisitionId,
-    status,
-  });
-
   if (!requisitionId || !status) {
     throw new HTTPException(400, {
       message: "Requisition ID and status are required",
@@ -279,8 +300,6 @@ app.put("/requisitions/:requisitionId/finalize", async (c) => {
     requisition.accounts,
     supabaseClient,
   );
-
-  console.log("LOG isSaved ", isSaved);
 
   if (!isSaved) {
     throw new HTTPException(500, {

@@ -26,6 +26,21 @@ export type BankAccountResponse = {
   name: string;
 };
 
+export type BankAccountDto = {
+  id: string;
+  requisition_id: string;
+  user_id: string;
+  status: string;
+  created_at: string;
+  // iban: string;
+  // bban: string;
+  // institution_id: string;
+  // institution_name: string;
+  // institution_logo: string;
+  // owner_name: string;
+  // name: string;
+};
+
 export interface EndUserAgreement {
   id: string;
   created: string;
@@ -56,4 +71,11 @@ export type RequisitionData = {
   institution_id: string;
   user_id: string;
   status: "pending" | "linked" | "error";
+};
+
+export type InstitutionResponse = {
+  id: string;
+  name: string;
+  bic: string;
+  logo: string;
 };
